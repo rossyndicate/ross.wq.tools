@@ -2,9 +2,9 @@
 #' @export
 #'
 #' @description
-#' Processes mWater field data to extract and format records specifically related to 
-#' sensor maintenance, calibration, and deployment activities. This function filters 
-#' for relevant visit types, formats equipment change information, and standardizes 
+#' Processes mWater field data to extract and format records specifically related to
+#' sensor maintenance, calibration, and deployment activities. This function filters
+#' for relevant visit types, formats equipment change information, and standardizes
 #' the data structure to match downstream QAQC processing requirements.
 #'
 #' This function focuses on routine sensor operations (cleaning, calibration, deployment)
@@ -29,13 +29,13 @@
 grab_mWater_sensor_notes <- function(mWater_api_data){
 
   # Extract and format sensor maintenance notes from mWater data
-  # These notes record routine sensore operations like cleaning, calibration, 
+  # These notes record routine sensore operations like cleaning, calibration,
   # and deployment
 
   mWater_field_notes <- mWater_api_data %>%
     # Filter for sensor-related activities but exclude malfunction reports
     # (malfunction reports are handled separately in `grab_mWater_malfunction_notes()`)
-    dplyr::filter(grepl("Sensor", visit_type, ignore.case = TRUE) & 
+    dplyr::filter(grepl("Sensor", visit_type, ignore.case = TRUE) &
                   !grepl("Sensor malfunction", visit_type, ignore.case = TRUE)) %>%
 
     # Create derived fields to track equipment status and changes
@@ -53,26 +53,34 @@ grab_mWater_sensor_notes <- function(mWater_api_data){
                                               sensor_change == "Pulled" & !is.na(sensor_pulled) ~ paste0("SN Removed: ", sensor_pulled),
                                               sensor_change == "Swapped" ~ paste0("SN Removed: ", sensor_pulled, " SN Deployed: ", sensor_deployed),
                                               sensor_change == "Deployed" ~ sensor_deployed),
-      
+
       # Create standardized date/time fields for joining with sensor data
       DT_join = as.character(DT_round),
       field_season = lubridate::year(DT_round),
       last_site_visit = DT_round,
       date = as.character(date)) %>%
-    
+
     # Sort by timestamp (most recent first)
     dplyr::arrange(desc(DT_round))%>%
-    
+
     # Select and reorder columns to match expected format for QAQC workflow
     dplyr::select(
-      site, crew, DT_round, sonde_employed, sensors_cleaned, wiper_working, 
-      rdo_cap_condition, rdo_cap_replaced, ph_junction_replaced, cals_performed, 
-      cal_report_collected, sonde_moved, sensor_malfunction, sensor_pulled, 
-      sensor_deployed, sensor_swapped_notes, visit_type, DT_join, 
-      start_DT, end_dt, date, visit_comments, photos_downloaded, field_season, 
-      last_site_visit
+      site, crew, DT_round, sonde_employed, sensors_cleaned, wiper_working,
+      rdo_cap_condition, rdo_cap_replaced, ph_junction_replaced, cals_performed,
+      cal_report_collected, sonde_moved, sensor_malfunction, sensor_pulled,
+      sensor_deployed, sensor_swapped_notes, visit_type, DT_join,
+      start_DT, end_dt, date, visit_comments, photos_downloaded, field_season,
+      last_site_visit,
+      # Adding pre/post clean and post calibration values
+      chla_pre_clean = pre_clean_chla, chla_post_clean = post_clean_chla, chla_post_cal = post_cal_chla,
+      cond_pre_clean, cond_post_clean, cond_post_cal,
+      fdom_pre_clean = pre_clean_fdom, fdom_post_clean = post_clea_fdom, fdom_post_cal = post_cal_fdom,
+      orp_pre_clean, orp_post_clean, orp_post_cal,
+      ph_pre_clean, ph_post_clean, ph_post_cal,
+      rdo_pre_clean, rdo_post_clean, rdo_post_cal,
+      turb_pre_clean, turb_post_clean, turb_post_cal
     )
-  
+
   return(mWater_field_notes)
 
 }

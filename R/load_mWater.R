@@ -3,13 +3,13 @@
 #'
 #' @description A function that downloads and cleasn field notes from mWater. This
 #' funciton handles time zone conversion, standardizes text fields, and prepares
-#' the data for integration with sonde readings. 
+#' the data for integration with sonde readings.
 #'
-#' @param creds A .yml file with necessary credentials for accessing the field 
-#' notes. Must contain a 'url' field. 
-#' 
+#' @param creds A .yml file with necessary credentials for accessing the field
+#' notes. Must contain a 'url' field.
+#'
 #' @param summarize_interval Character string specifying the time interval to round timestamps to.
-#' Default is "15 minutes". Accepts any interval format compatible with 
+#' Default is "15 minutes". Accepts any interval format compatible with
 #' lubridate::floor_date() like "1 hour", "30 mins", etc.
 #'
 #' @return A dataframe containing processed field notes with standardized columns:
@@ -19,7 +19,7 @@
 #' - visit_type: Type of field visit (standardized)
 #' - sensor_pulled/sensor_deployed: Serial numbers of equipment
 #' - And various other field observation columns
-#' 
+#'
 #' @examples
 #' # Examples are temporarily disabled
 #' @seealso [grab_mWater_sensor_notes()]
@@ -37,7 +37,7 @@ load_mWater <- function(creds = yaml::read_yaml("creds/mWaterCreds.yml"), summar
       start_DT = lubridate::with_tz(lubridate::parse_date_time(start_dt, orders = c("%Y-%m-%d", "%Y%m%d %H:%M:%S", "%m%d%y %H:%M", "%m%d%Y %H:%M", "%b%d%y %H:%M" )), tz = "UTC"),
       end_dt = lubridate::with_tz(lubridate::parse_date_time(end_dt, orders = c("%Y-%m-%d", "%Y%m%d %H:%M:%S", "%m%d%y %H:%M", "%m%d%Y %H:%M", "%b%d%y %H:%M" )), tz = "UTC"),
       malfunction_end_dt = lubridate::with_tz(lubridate::parse_date_time(malfunction_end_dt, orders = c("%Y-%m-%d", "%Y%m%d %H:%M:%S", "%m%d%y %H:%M", "%m%d%Y %H:%M", "%b%d%y %H:%M" )), tz = "UTC"),
-      
+
       # Extract date and time components for convenience
       date = as.Date(start_DT, tz = "UTC"),
 
@@ -48,19 +48,19 @@ load_mWater <- function(creds = yaml::read_yaml("creds/mWaterCreds.yml"), summar
       # Handle "Other" site names by using the free text response
       # Also standardize by removing spaces and converting to lowercase
       site = ifelse(site == "Other (please specify)", tolower(stringr::str_replace_all(site_other, " ", "")), site),
-      
+
       # Fix a survey design issue where "???" appears in visit_type
       visit_type = dplyr::case_when(stringr::str_detect(visit_type, "\\?\\?\\?") ~ stringr::str_replace(string = visit_type,
                                                                                pattern =  "\\?\\?\\?",
                                                                                replacement = "Sensor Calibration or Check"),
                              TRUE ~ visit_type),
-      
+
       # Replace "Other" in visit_type with the free text response when applicable
       visit_type = dplyr::case_when(stringr::str_detect(visit_type, "Other") ~ stringr::str_replace(string = visit_type,
                                                                            pattern =  "Other \\(please specify\\)",
                                                                            replacement = visit_type_other),
                              TRUE ~ visit_type),
-      
+
       # Replace "Other" in sensor_malfunction with the free text response
       which_sensor_malfunction = dplyr::case_when(stringr::str_detect(which_sensor_malfunction, "Other") ~ stringr::str_replace(string = which_sensor_malfunction,
                                                                                                        pattern =  "Other \\(please specify\\)",
@@ -69,7 +69,7 @@ load_mWater <- function(creds = yaml::read_yaml("creds/mWaterCreds.yml"), summar
 
       # Replace "Other" in photos_downloaded with the free text response
       photos_downloaded = ifelse(photos_downloaded == "Other (please specify)", photos_downloaded_other, photos_downloaded),
-      
+
       # Create a rounded timestamp for joining with sensor data at consistent intervals
       DT_round = lubridate::floor_date(start_DT, unit = summarize_interval)) %>%
     # arrange by timestamp (most recent first)

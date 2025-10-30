@@ -1,0 +1,581 @@
+---
+title: "fixing_drift"
+output: html_document
+---
+
+# Introduction
+
+This vignette demonstrates the complete workflow for drift correction on optical
+water quality sensor data using field notes to linearly correct drift.
+
+# Prepare Environment
+```{r setup}
+knitr::opts_chunk$set(
+  eval = FALSE,
+  echo = TRUE
+)
+```
+
+# Load libraries
+```{r}
+#Installing and loading all packages
+invisible(
+  lapply(c(
+    "tidyverse", # Data manipulation
+    "janitor", # Clean dirty data
+    "lubridate", # Date-Time Manipulation
+    "rvest", # HTML Retrieval and Manipulation
+    "readxl", # Reading excel files
+    "here", # Easy, cross platform file referencing
+    "ggplot2", # Plotting libraries
+    "ggpubr",
+    "plotly",
+    "devtools", # For downloading GitHub packages
+    "remotes",
+    "yaml",
+    "ggpubr"
+  ),
+  function(x) {
+    if (x %in% installed.packages()) {
+      suppressMessages({
+        library(x, character.only = TRUE)
+      })
+    } else {
+      suppressMessages({
+        install.packages(x)
+        library(x, character.only = TRUE)
+      })
+    }
+  })
+)
+
+load_all()
+```
+
+# Load some data in to play with
+
+```{r}
+# Read in 2023, 2024, and 2025 sensor data
+sensor_data <- read_rds(here("..", "poudre_sonde_network", "data", "manual_data_verification", "complete_dataset", "23_25_hv_pull"))
+```
+
+```{r}
+# Flatten the nested list and combine all tibbles
+data_list <- sensor_data %>%
+  map_dfr(~ map_dfr(.x, bind_rows)) %>%
+  filter(
+    parameter %in% c("Turbidity", "Chl-a Fluorescence")
+  ) %>%
+  split(f = list(.$site, .$parameter), sep = "-") %>%
+  discard(~ is.null(.x) | nrow(.x) == 0)
+```
+
+
+# Read in the field notes to join it with the data.
+
+```{r}
+mw_notes <- load_mWater(creds = read_yaml(here("..", "poudre_sonde_network", "creds", "mWaterCreds.yml")))
+
+field_notes <- ross.wq.tools::grab_mWater_sensor_notes(mw_notes)
+malfunction_notes <- ross.wq.tools::grab_mWater_malfunction_notes(mw_notes)
+```
+
+# Join the field notes with the sensor data
+```{r}
+notes_list <- data_list %>%
+  map(function(df) {
+    ross.wq.tools::add_field_notes(
+      df = df, 
+      notes = field_notes
+    )
+  })
+```
+
+# Apply the malfunction flag and the drift flag 
+
+I want to see how well these functions are working independently and with each other,
+without relying on the network check.
+
+```{r}
+flagged_list <- notes_list %>%
+  future_map(function(df) {
+    df %>%
+      add_field_flag() %>%
+      add_malfunction_flag(malfunction_records = malfunction_notes) %>%
+      add_drift_flag()
+  })
+```
+
+```{r}
+# Create a combined column for all drift/site_visit combinations
+flagged_list <- flagged_list %>%
+  map(function(df) {
+    df %>%
+      mutate(
+        drift = ifelse(grepl("drift", flag), TRUE, FALSE),
+        site_visit = ifelse(grepl("site visit|sv window", flag), TRUE, FALSE),
+        # Create combined factor for plotting
+        drift_visit_combo = case_when(
+          !drift & !site_visit ~ "No drift, No visit",
+          drift & !site_visit ~ "Drift only", 
+          !drift & site_visit ~ "Site visit only",
+          drift & site_visit ~ "Drift + Site visit",
+          TRUE ~ "Other"  # fallback
+        )
+      )
+  })
+```
+
+# Make plotting functions to easily look at different sections of the data
+```{r}
+# Updated plotting function
+plot_drift <- function(df) {
+  ggplot(data = df, aes(x = DT_round, y = mean, color = drift_visit_combo)) +
+    geom_point(aes(alpha = drift_visit_combo)) +
+    scale_color_manual(values = c(
+      "No drift, No visit" = "grey",
+      "Drift only" = "tomato", 
+      "Site visit only" = "blue",
+      "Drift + Site visit" = "purple"
+    )) +
+    scale_alpha_manual(values = c(
+      "No drift, No visit" = 0.3,
+      "Drift only" = 0.8,
+      "Site visit only" = 0.6, 
+      "Drift + Site visit" = 1.0
+    )) +
+    labs(color = "Status", alpha = "Status")
+}
+```
+
+# Clean up the environment
+
+```{r}
+rm(
+  # HV sensor data
+  sensor_data, data_list,
+  # MW notes data
+  mw_notes, field_notes, malfunction_notes,
+  # Derived combined HV and MW data
+  notes_list
+)
+
+gc()
+```
+
+# >>>> Detecting drift issues <<<<
+```{r}
+
+```
+
+
+# >>>> Drafting drift solutions <<<<
+
+## Field notes implementation
+
+### Analyzing the differences between pre and post calibration data
+
+The assumption here is that the data in field notes should be enough to do a 
+one point drift correction. The way that one point drift corrections work (at 
+least using the `{driftr}` methods) is that a difference between two data points 
+is taken, and then is applied to to the data in a temporally weighted way. When
+we tried to fix this with the calibration data we fell very short because the differences
+between those two data points was often very small, often less than ~3 NTU, while
+the difference that we were trying to correct for in the drift was often around 
+~100 NTU. This method did not work then, but the assumption here is that the
+pre and post calibration data points captured in mWater field notes should be enough
+to correct this drift correction. Here I want to analyse these differences to get 
+a sense if this will work or not. 
+
+I am subtracting the post calibration number from the pre calibration number.
+Under the assumption that the pre calibration number should typically be bigger
+than the post calibration number, we should expect mostly negative values
+
+#### Plot Histograms of the differences between these values to see whats going on.
+
+There are some outliers that make this analysis tough, so for now lets remove 
+those, and plot what the histogram looks like then.
+
+```{r}
+diff_df <- flagged_list %>% 
+  bind_rows() %>% 
+  filter(parameter == "Turbidity", 
+         !is.na(turb_pre_clean) & (!is.na(turb_post_cal) | !is.na(turb_post_clean))) %>% 
+  mutate(
+    diff_clean = turb_post_clean - turb_pre_clean,
+    diff_cal = turb_post_cal - turb_pre_clean
+  ) %>% 
+  filter(
+    diff_clean > -25 & diff_clean < 25,
+    diff_cal > -25 & diff_cal < 25
+  )
+
+# Create histograms for cleaning effect (pre_clean to post_clean)
+clean_plot <- ggplot(data = diff_df) +
+  geom_histogram(aes(x = diff_clean), bins = 30, fill = "steelblue") +
+  labs(title = "Effect of Cleaning", 
+       x = "Post-Clean - Pre-Clean (NTU)") +
+  theme_minimal()
+
+# Create histograms for calibration effect (pre_clean to post_cal)
+cal_plot <- ggplot(data = diff_df) +
+  geom_histogram(aes(x = diff_cal), bins = 30, fill = "darkgreen") +
+  labs(title = "Effect of Calibration", 
+       x = "Post-Cal - Pre-Clean (NTU)") +
+  theme_minimal()
+
+# Compare them side by side
+ggarrange(clean_plot, cal_plot, ncol = 2)
+```
+
+The fact that these numbers are not bigger is concerning to me. 
+
+### Example of drift with field notes that can be used to fix it.
+```{r}
+# Example drift with field notes
+# og_example_drift_fn <- flagged_list$`cottonwood-Turbidity` %>% 
+#   filter(between(DT_round, as.POSIXct("2025-06-25"), as.POSIXct("2025-07-07")))
+
+example_drift_fn <- flagged_list$`cottonwood-Turbidity` %>% 
+  filter(between(DT_round, as.POSIXct("2025-06-25"), as.POSIXct("2025-07-07"))) %>% 
+  mutate(
+    # Fill in the missed drift:
+    drift = ifelse(between(DT_round, as.POSIXct("2025-06-30"), as.POSIXct("2025-07-03")), TRUE, drift),
+    # Create combined factor for plotting
+    drift_visit_combo = case_when(
+      !drift & !site_visit ~ "No drift, No visit",
+      drift & !site_visit ~ "Drift only", 
+      !drift & site_visit ~ "Site visit only",
+      drift & site_visit ~ "Drift + Site visit",
+      TRUE ~ "Other"  # fallback
+    )
+  )
+
+plot_drift(example_drift_fn) +
+  ylim(0, 100)
+```
+
+Here the `add_drift_flag()` function was able to detect drift. There is some 
+weirdness going on in the middle of the flagged data, but for now we are going
+to ignore that to keep making progress on drift correction. We will improve 
+drift detection later. For now, we are just going to tweak it so that all of those
+missed points also have drift in them, to test the method
+
+Also note the difference in NTU from the end of drift to the new site visit group. 
+It's close to 100NTU.
+
+Here is the plan to correct drift:
+
+1. Identify "drift groups". Those consecutive groups of data all belong to a single drift instance.
+2. Find the appropriate "before" and "after" numbers to do a one point drift correction.
+3. Apply the appropriate one point drift correction information to the right drift group.
+
+We do steps 1 and 2 in reverse order. First, we find "site visit groups", and then
+look for "drift groups" within those groups. The assumption here is that each 
+site visit group _should_ have the information that we need to correct the single
+drift group inside of it. Just to make these assumptions clear:
+
+- Each site visit group has one drift group.
+- Each site visit's drift correction information (pre, post calibration info) is appropriate for the related drift group.
+
+These assumptions are not always met with our current detection and correction methods.
+Whatever, we ball. Lets just keep going and then build from what we find out.
+
+```{r}
+# install.packages("groupdata2")
+# library(groupdata2)
+
+# install.packages("forecast")
+# library(forecast)
+
+# lets make this a function and see what happens
+drift_corrector <- function(df) {
+  
+  corrected_drift_df <- df %>% 
+  # there are `last_site_visit` groups that we can use, but the information for a drift correction
+  # for one of these groups is actually in the following group's (much like the calibration correction).
+  
+  # Fortunately, we can fill backwards on these groups in order to grab the 
+  # relevant information for the groups that we want to correct. For now,
+  # lets only fill backwards the columns that we know we are going to need.
+  
+  tidyr::fill(turb_pre_clean, .direction = "up") %>% 
+  tidyr::fill(turb_post_clean, .direction = "up") %>% # Use this if there is no post cal value
+  tidyr::fill(turb_post_cal, .direction = "up") %>% # Use this preferentially
+  
+  # Character mutate of last site visit so that groupdata2 plays ball with us
+  mutate(last_site_visit_chr = as.character(last_site_visit)) %>% 
+  
+  # Now that we have the information that we need from each site visit group,
+  # lets split them up
+  groupdata2::splt(
+    n = "auto",
+    method = "l_starts",
+    starts_col = "last_site_visit_chr"
+  ) %>% 
+  map(function(sv_group_df){
+    
+    # applying a mutate here to work with `group_factor()`, but this mutate should
+    # actually be made when I "create a combined column for all drift/site_visit 
+    # combinations"
+    
+    # Drift = 1, NO Drift = 0
+    df <- sv_group_df %>% 
+      mutate(drift = ifelse(drift == TRUE, 1, 0)) 
+    
+    # Not all of these dfs have drift, so we can just skip those
+    # Check if there is only 1 group, and if there is, check if it is drift,
+    # else skip. If there are 2 groups, one of them is drift, so we are not going to check 
+    # that right now
+    if(length(unique(df$drift)) == 1 && unique(df$drift) == 0) return(df)
+    
+    # cal one point drift handles missing calibration data, so lets split these 
+    # Site visit groups into drift and non drift groups
+    df <- df %>% 
+      groupdata2::splt(
+        n = "auto",
+        method = "l_starts",
+        starts_col = "drift"
+      ) %>% 
+      map(
+        function(drift_group) {
+          # First check if it is not a drift group, and skip if not
+          if(unique(drift_group$drift) == 0) return(drift_group)
+          
+          # >>>> DRIFT CORRECTION STEP <<<<
+          # If it is a drift group, pass it through the weighting and 
+          # one point calibration functions
+          
+          # Check which "post" value we should use, and then use that.
+          post_cal <- df[["turb_post_cal"]][[nrow(df)]]
+          post_clean <- df[["turb_post_clean"]][[nrow(df)]]
+          
+          if (!is.na(post_cal)) {
+            corrected_drift_group <- drift_group %>% 
+              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+              cal_exp_one_point_drift(
+                lm_trans_col = "mean", 
+                pre_col = "turb_pre_clean", 
+                post_col = "turb_post_cal", 
+                wt_col = "wt",
+                drift_type = "exponential",
+                correction_type = "multiplicative"
+              )
+          } else if (!is.na(post_clean)) {
+            corrected_drift_group <- drift_group %>% 
+              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+              cal_exp_one_point_drift(
+                lm_trans_col = "mean", 
+                pre_col = "turb_pre_clean", 
+                post_col = "turb_post_clean", 
+                wt_col = "wt",
+                drift_type = "exponential",
+                correction_type = "multiplicative"
+              )
+          } else {
+            return(drift_group)
+          }
+          
+          return(corrected_drift_group)
+        }
+      ) %>% 
+      reduce(full_join)
+  }) %>% 
+  reduce(full_join)
+
+  return(corrected_drift_df)
+}
+
+```
+
+```{r}
+ex_dr_fn_dg <- drift_corrector(example_drift_fn)
+```
+
+Now that we have corrected drift, lets see what happened:
+```{r}
+ggplot(ex_dr_fn_dg, aes(x = DT_round)) +
+  geom_line(aes(y = mean, color = "Uncorrected"), alpha = 0.7) +
+  geom_line(aes(y = mean_drift_trans, color = "One-Point Correction"), alpha = 0.7) +
+  labs(
+    title = "Turbidity: Drift Corrected vs Uncorrected",
+    subtitle = "Cottonwood Site",
+    x = "Date",
+    y = "Turbidity (NTU)",
+    color = "Data Type"
+  ) +
+  scale_color_manual(values = c("Uncorrected" = "gray50", 
+                                "One-Point Correction" = "steelblue")
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+Looks pretty good. There is a hump there that might suggest that the drift is
+slightly faster than exponential growth, but overall I would say the function works.
+
+This example I was very careful with the data and took good care to make sure 
+everything was good so that it would work. The plan is to apply this liberally
+across a bunch of data. That is when I expect this to break. 
+
+Lets try to break it right now, even.
+
+```{r}
+example_drift_fn_2 <- flagged_list$`cottonwood-Turbidity` %>% 
+  filter(between(DT_round, as.POSIXct("2025-05-01"), as.POSIXct("2025-05-30"))) 
+
+plot_drift(example_drift_fn_2) +
+  ylim(0, 100) 
+```
+
+This data, which comes from the same data set that I just used to correct the drift
+correctly, breaks a lot of the assumptions that I was talking about earlier. Lets 
+see what happens when we apply this function willy nilly.
+
+```{r}
+ex_dr_fn_dg_2 <- drift_corrector(example_drift_fn_2)
+
+ggplot(ex_dr_fn_dg_2, aes(x = DT_round)) +
+  geom_line(aes(y = mean, color = "Uncorrected"), alpha = 0.7) +
+  geom_line(aes(y = mean_drift_trans, color = "One-Point Correction"), alpha = 0.7) +
+  geom_point(data = filter(ex_dr_fn_dg_2, site_visit == TRUE), 
+             aes(y = mean), color = "black", size = 2) +
+  labs(
+    title = "Turbidity: Drift Corrected vs Uncorrected",
+    subtitle = "Cottonwood Site",
+    x = "Date",
+    y = "Turbidity (NTU)",
+    color = "Data Type"
+  ) +
+  scale_color_manual(values = c("Uncorrected" = "gray50", 
+                                "One-Point Correction" = "steelblue")
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  ylim(0, 100)
+```
+
+Yeah, that's no good. A problem for later. Moving on.
+
+## Data heuristic implementation
+
+### Example of drift with no field notes that can be used to fix it. 
+
+```{r}
+example_drift_dh <- flagged_list$`riverbend-Turbidity` %>% 
+  filter(between(DT_round, as.POSIXct("2023-04-20"), as.POSIXct("2023-04-30")))
+
+plot_drift(example_drift_dh) +
+  # xlim(as.POSIXct("2023-04-20"), as.POSIXct("2023-04-30")) +
+  ylim(0, 100)
+```
+
+Before, we were able to use the information in the field notes to fix the problem. 
+We will not always have this at hand for older data, and there may be drift with
+no site visit information as well. So lets see what we can do in these weirder 
+situations. 
+
+First, I am going to use the example that I used before, because the drift detection
+was too greedy and flagged more data than there should be here. 
+
+The overall idea here should be basically the same. We need to find a value that 
+represents the peak of the drift, and a value that represents the data when it 
+came back down. The trouble here is figuring out how to assimilate this into the 
+code that we already have. 
+
+For now lets ignore site visits and see what we can do with just drift group
+information.
+
+```{r}
+# example_drift_fn
+
+plot_drift(example_drift_fn) +
+  ylim(0, 100)
+```
+
+```{r}
+# HERE
+# I left off trying to make the drift correctin function work for two data points that are not in columns
+# There is another, bigger issue of accurate drift detection, or rather ending the drift detection algorithm 
+# at the right time, but that is something for later.
+
+corrected_drift_df <- example_drift_fn %>% 
+  # Lets split this data up by drift groups
+  groupdata2::group(
+    n = "auto",
+    method = "l_starts",
+    starts_col = "drift"
+  )
+  map(function(drift_group_df){
+    
+    # applying a mutate here to work with `group_factor()`, but this mutate should
+    # actually be made when I "create a combined column for all drift/site_visit 
+    # combinations"
+    
+    # Drift = 1, NO Drift = 0
+    df <- drift_group_df %>% 
+      mutate(drift = ifelse(drift == TRUE, 1, 0)) 
+    
+    # Not all of these dfs have drift, so we can just skip those
+    # Check if there is only 1 group, and if there is, check if it is drift,
+    # else skip. If there are 2 groups, one of them is drift, so we are not going to check 
+    # that right now
+    if(length(unique(df$drift)) == 1 && unique(df$drift) == 0) return(df)
+    
+    # cal one point drift handles missing calibration data, so lets split these 
+    # Site visit groups into drift and non drift groups
+    df <- df %>% 
+      groupdata2::splt(
+        n = "auto",
+        method = "l_starts",
+        starts_col = "drift"
+      ) %>% 
+      map(
+        function(drift_group) {
+          # First check if it is not a drift group, and skip if not
+          if(unique(drift_group$drift) == 0) return(drift_group)
+          
+          # >>>> DRIFT CORRECTION STEP <<<<
+          # If it is a drift group, pass it through the weighting and 
+          # one point calibration functions
+          
+          # Check which "post" value we should use, and then use that.
+          post_cal <- df[["turb_post_cal"]][[nrow(df)]]
+          post_clean <- df[["turb_post_clean"]][[nrow(df)]]
+          
+          if (!is.na(post_cal)) {
+            corrected_drift_group <- drift_group %>% 
+              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+              cal_exp_one_point_drift(
+                lm_trans_col = "mean", 
+                pre_col = "turb_pre_clean", 
+                post_col = "turb_post_cal", 
+                wt_col = "wt",
+                drift_type = "exponential",
+                correction_type = "multiplicative"
+              )
+          } else if (!is.na(post_clean)) {
+            corrected_drift_group <- drift_group %>% 
+              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+              cal_exp_one_point_drift(
+                lm_trans_col = "mean", 
+                pre_col = "turb_pre_clean", 
+                post_col = "turb_post_clean", 
+                wt_col = "wt",
+                drift_type = "exponential",
+                correction_type = "multiplicative"
+              )
+          } else {
+            return(drift_group)
+          }
+          
+          return(corrected_drift_group)
+        }
+      ) %>% 
+      reduce(full_join)
+  }) %>% 
+  reduce(full_join)
+
+
+```
+

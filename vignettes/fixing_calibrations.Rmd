@@ -50,7 +50,7 @@ invisible(
 )
 
 #library non CRAN packages
-lapply(c("rossyndicate/fcw.qaqc"), function(x) {
+lapply(c("rossyndicate/ross.wq.tools"), function(x) {
   pack_name <- unlist(strsplit(x, "/"))[2] #get package name (no GH username)
   
   if (pack_name %in% installed.packages()) {
@@ -107,7 +107,7 @@ if (file.exists(here("data", "manual_data_verification", "complete_dataset", "23
     set_names(names(calibration_data)) %>% 
     compact()
 } else {
-  library(fcw.qaqc)
+  library(ross.wq.tools)
   
   sensor_data <- names(calibration_data) %>% 
     map(function(year){
@@ -151,7 +151,7 @@ if (file.exists(here("data", "manual_data_verification", "complete_dataset", "23
       pwalk(api_start_dates,
             function(site, start_DT, end_DT) {
               message("Requesting HydroVu data for site: ", site)
-              fcw.qaqc::api_puller(
+              ross.wq.tools::api_puller(
                 site = site,
                 start_dt = start_DT,
                 end_dt = end_DT,
@@ -172,7 +172,7 @@ if (file.exists(here("data", "manual_data_verification", "complete_dataset", "23
         return(NULL)
       }
       
-      new_data <- fcw.qaqc::munge_api_data(api_dir = temp_dir) %>% 
+      new_data <- ross.wq.tools::munge_api_data(api_dir = temp_dir) %>% 
         fix_sites() %>%
         split(f = list(.$site, .$parameter), sep = "-") %>%
         purrr::keep(~ nrow(.) > 0)
@@ -190,7 +190,7 @@ if (file.exists(here("data", "manual_data_verification", "complete_dataset", "23
       
       new_data <- new_data[names(new_data) %in% site_param_combos]
       
-      sensor_data <- map(new_data, ~fcw.qaqc::tidy_api_data(api_data = .x)) %>% 
+      sensor_data <- map(new_data, ~ross.wq.tools::tidy_api_data(api_data = .x)) %>% 
         keep(~!is.null(.))
       
       # Save the API data...

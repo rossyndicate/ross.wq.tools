@@ -90,7 +90,7 @@ max_workers <- 4  # Maximum number of parallel workers
 
 ## Package Setup
 
-The workflow uses several R packages and custom functions in {fcw.qaqc}. Here's how to set up the environment:
+The workflow uses several R packages and custom functions in {ross.wq.tools}. Here's how to set up the environment:
 
 ```{r}
 # load required packages
@@ -110,7 +110,7 @@ package_loader <- function(x) {
 # load all required packages
 invisible(
   lapply(c("arrow", "data.table", "httr2", "tidyverse", "lubridate", "zoo", 
-           "padr", "stats", "RcppRoll", "yaml", "here", "furrr", "fcw.qaqc"),
+           "padr", "stats", "RcppRoll", "yaml", "here", "furrr", "ross.wq.tools"),
          package_loader)
 )
 
@@ -120,7 +120,7 @@ plan(multisession, workers = num_workers)
 furrr_options(
   globals = TRUE,
   packages = c("arrow", "data.table", "httr2", "tidyverse", "lubridate", "zoo",
-               "padr", "stats", "RcppRoll", "yaml", "here", "fcw.qaqc")
+               "padr", "stats", "RcppRoll", "yaml", "here", "ross.wq.tools")
 )
 
 # suppress scientific notation for consistent formatting

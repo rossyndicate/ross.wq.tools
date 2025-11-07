@@ -61,9 +61,9 @@ The auto-QAQC pipeline relies on several specialized R packages organized by fun
 -   Statistical Analysis:
     -   `{RcppRoll}`: Fast rolling functions (window calculations) implemented in C++
 -   Custom Functions:
-    -   `{fcw.qaqc}`: Custom package for Fort Collins water quality control
+    -   `{ross.wq.tools}`: Custom package for ROSSyndicate management of sonde data, developed from the package `fcw.qaqc`, a custom package for Fort Collins Utilities sonde managment
 
-Together, these packages provide the necessary tools to handle each step of the pipeline: retrieving data from sensors, cleaning and standardizing it, performing statistical analyses for quality control, identifying anomalies, and storing the processed results. The custom {fcw.qaqc} package contains specialized functions developed specifically for the unique requirements of the city's Poudre River Water Quality Network.
+Together, these packages provide the necessary tools to handle each step of the pipeline: retrieving data from sensors, cleaning and standardizing it, performing statistical analyses for quality control, identifying anomalies, and storing the processed results. The custom {ross.wq.tools} and {fcw.qaqc} package contains specialized functions developed specifically for the unique requirements of the city's Poudre River Water Quality Network.
 
 ## 2.2 Define File Paths and Storage Configuration
 

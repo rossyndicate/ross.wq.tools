@@ -98,7 +98,7 @@ without relying on the network check.
 
 ```{r}
 flagged_list <- notes_list %>%
-  future_map(function(df) {
+  map(function(df) {
     df %>%
       add_field_flag() %>%
       add_malfunction_flag(malfunction_records = malfunction_notes) %>%
@@ -133,15 +133,15 @@ plot_drift <- function(df) {
   ggplot(data = df, aes(x = DT_round, y = mean, color = drift_visit_combo)) +
     geom_point(aes(alpha = drift_visit_combo)) +
     scale_color_manual(values = c(
-      "No drift, No visit" = "grey",
+      "No flags" = "grey",
       "Drift only" = "tomato", 
-      "Site visit only" = "blue",
+      # "Site visit only" = "blue",
       "Drift + Site visit" = "purple"
     )) +
     scale_alpha_manual(values = c(
-      "No drift, No visit" = 0.3,
+      # "No drift, No visit" = 0.3,
       "Drift only" = 0.8,
-      "Site visit only" = 0.6, 
+      # "Site visit only" = 0.6, 
       "Drift + Site visit" = 1.0
     )) +
     labs(color = "Status", alpha = "Status")
@@ -236,6 +236,31 @@ The fact that these numbers are not bigger is concerning to me.
 # og_example_drift_fn <- flagged_list$`cottonwood-Turbidity` %>% 
 #   filter(between(DT_round, as.POSIXct("2025-06-25"), as.POSIXct("2025-07-07")))
 
+# Updated plotting function
+plot_drift <- function(df) {
+  ggplot(data = df, aes(x = DT_round, y = mean, color = drift_visit_combo)) +
+    geom_point(aes(alpha = drift_visit_combo)) +
+    scale_color_manual(values = c(
+      "No drift, No visit" = "grey",
+      "Drift only" = "tomato", 
+      "Site visit only" = "blue",
+      "Drift + Site visit" = "purple"
+    )) +
+    scale_alpha_manual(values = c(
+      "No drift, No visit" = 0.3,
+      "Drift only" = 0.8,
+      "Site visit only" = 0.6,
+      "Drift + Site visit" = 1.0
+    )) +
+    labs(
+      color = "Status", 
+      alpha = "Status",
+      x = "Datetime",
+      y = "Turbidity"
+    ) +
+    theme_bw()
+}
+
 example_drift_fn <- flagged_list$`cottonwood-Turbidity` %>% 
   filter(between(DT_round, as.POSIXct("2025-06-25"), as.POSIXct("2025-07-07"))) %>% 
   mutate(
@@ -292,97 +317,97 @@ Whatever, we ball. Lets just keep going and then build from what we find out.
 drift_corrector <- function(df) {
   
   corrected_drift_df <- df %>% 
-  # there are `last_site_visit` groups that we can use, but the information for a drift correction
-  # for one of these groups is actually in the following group's (much like the calibration correction).
-  
-  # Fortunately, we can fill backwards on these groups in order to grab the 
-  # relevant information for the groups that we want to correct. For now,
-  # lets only fill backwards the columns that we know we are going to need.
-  
-  tidyr::fill(turb_pre_clean, .direction = "up") %>% 
-  tidyr::fill(turb_post_clean, .direction = "up") %>% # Use this if there is no post cal value
-  tidyr::fill(turb_post_cal, .direction = "up") %>% # Use this preferentially
-  
-  # Character mutate of last site visit so that groupdata2 plays ball with us
-  mutate(last_site_visit_chr = as.character(last_site_visit)) %>% 
-  
-  # Now that we have the information that we need from each site visit group,
-  # lets split them up
-  groupdata2::splt(
-    n = "auto",
-    method = "l_starts",
-    starts_col = "last_site_visit_chr"
-  ) %>% 
-  map(function(sv_group_df){
+    # there are `last_site_visit` groups that we can use, but the information for a drift correction
+    # for one of these groups is actually in the following group's (much like the calibration correction).
     
-    # applying a mutate here to work with `group_factor()`, but this mutate should
-    # actually be made when I "create a combined column for all drift/site_visit 
-    # combinations"
+    # Fortunately, we can fill backwards on these groups in order to grab the 
+    # relevant information for the groups that we want to correct. For now,
+    # lets only fill backwards the columns that we know we are going to need.
     
-    # Drift = 1, NO Drift = 0
-    df <- sv_group_df %>% 
-      mutate(drift = ifelse(drift == TRUE, 1, 0)) 
+    tidyr::fill(turb_pre_clean, .direction = "up") %>% 
+    tidyr::fill(turb_post_clean, .direction = "up") %>% # Use this if there is no post cal value
+    tidyr::fill(turb_post_cal, .direction = "up") %>% # Use this preferentially
     
-    # Not all of these dfs have drift, so we can just skip those
-    # Check if there is only 1 group, and if there is, check if it is drift,
-    # else skip. If there are 2 groups, one of them is drift, so we are not going to check 
-    # that right now
-    if(length(unique(df$drift)) == 1 && unique(df$drift) == 0) return(df)
+    # Character mutate of last site visit so that groupdata2 plays ball with us
+    mutate(last_site_visit_chr = as.character(last_site_visit)) %>% 
     
-    # cal one point drift handles missing calibration data, so lets split these 
-    # Site visit groups into drift and non drift groups
-    df <- df %>% 
-      groupdata2::splt(
-        n = "auto",
-        method = "l_starts",
-        starts_col = "drift"
-      ) %>% 
-      map(
-        function(drift_group) {
-          # First check if it is not a drift group, and skip if not
-          if(unique(drift_group$drift) == 0) return(drift_group)
-          
-          # >>>> DRIFT CORRECTION STEP <<<<
-          # If it is a drift group, pass it through the weighting and 
-          # one point calibration functions
-          
-          # Check which "post" value we should use, and then use that.
-          post_cal <- df[["turb_post_cal"]][[nrow(df)]]
-          post_clean <- df[["turb_post_clean"]][[nrow(df)]]
-          
-          if (!is.na(post_cal)) {
-            corrected_drift_group <- drift_group %>% 
-              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
-              cal_exp_one_point_drift(
-                lm_trans_col = "mean", 
-                pre_col = "turb_pre_clean", 
-                post_col = "turb_post_cal", 
-                wt_col = "wt",
-                drift_type = "exponential",
-                correction_type = "multiplicative"
-              )
-          } else if (!is.na(post_clean)) {
-            corrected_drift_group <- drift_group %>% 
-              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
-              cal_exp_one_point_drift(
-                lm_trans_col = "mean", 
-                pre_col = "turb_pre_clean", 
-                post_col = "turb_post_clean", 
-                wt_col = "wt",
-                drift_type = "exponential",
-                correction_type = "multiplicative"
-              )
-          } else {
-            return(drift_group)
+    # Now that we have the information that we need from each site visit group,
+    # lets split them up
+    groupdata2::splt(
+      n = "auto",
+      method = "l_starts",
+      starts_col = "last_site_visit_chr"
+    ) %>% 
+    map(function(sv_group_df){
+      
+      # applying a mutate here to work with `group_factor()`, but this mutate should
+      # actually be made when I "create a combined column for all drift/site_visit 
+      # combinations"
+      
+      # Drift = 1, NO Drift = 0
+      df <- sv_group_df %>% 
+        mutate(drift = ifelse(drift == TRUE, 1, 0)) 
+      
+      # Not all of these dfs have drift, so we can just skip those
+      # Check if there is only 1 group, and if there is, check if it is drift,
+      # else skip. If there are 2 groups, one of them is drift, so we are not going to check 
+      # that right now
+      if(length(unique(df$drift)) == 1 && unique(df$drift) == 0) return(df)
+      
+      # cal one point drift handles missing calibration data, so lets split these 
+      # Site visit groups into drift and non drift groups
+      df <- df %>% 
+        groupdata2::splt(
+          n = "auto",
+          method = "l_starts",
+          starts_col = "drift"
+        ) %>% 
+        map(
+          function(drift_group) {
+            # First check if it is not a drift group, and skip if not
+            if(unique(drift_group$drift) == 0) return(drift_group)
+            
+            # >>>> DRIFT CORRECTION STEP <<<<
+            # If it is a drift group, pass it through the weighting and 
+            # one point calibration functions
+            
+            # Check which "post" value we should use, and then use that.
+            post_cal <- df[["turb_post_cal"]][[nrow(df)]]
+            post_clean <- df[["turb_post_clean"]][[nrow(df)]]
+            
+            if (!is.na(post_cal)) {
+              corrected_drift_group <- drift_group %>% 
+                ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+                cal_exp_one_point_drift(
+                  lm_trans_col = "mean", 
+                  pre_col = "turb_pre_clean", 
+                  post_col = "turb_post_cal", 
+                  wt_col = "wt",
+                  drift_type = "exponential",
+                  correction_type = "multiplicative"
+                )
+            } else if (!is.na(post_clean)) {
+              corrected_drift_group <- drift_group %>% 
+                ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+                cal_exp_one_point_drift(
+                  lm_trans_col = "mean", 
+                  pre_col = "turb_pre_clean", 
+                  post_col = "turb_post_clean", 
+                  wt_col = "wt",
+                  drift_type = "exponential",
+                  correction_type = "multiplicative"
+                )
+            } else {
+              return(drift_group)
+            }
+            
+            return(corrected_drift_group)
           }
-          
-          return(corrected_drift_group)
-        }
-      ) %>% 
-      reduce(full_join)
-  }) %>% 
-  reduce(full_join)
-
+        ) %>% 
+        reduce(full_join)
+    }) %>% 
+    reduce(full_join)
+  
   return(corrected_drift_df)
 }
 
@@ -395,20 +420,20 @@ ex_dr_fn_dg <- drift_corrector(example_drift_fn)
 Now that we have corrected drift, lets see what happened:
 ```{r}
 ggplot(ex_dr_fn_dg, aes(x = DT_round)) +
-  geom_line(aes(y = mean, color = "Uncorrected"), alpha = 0.7) +
-  geom_line(aes(y = mean_drift_trans, color = "One-Point Correction"), alpha = 0.7) +
+  geom_point(aes(y = mean, color = "Uncorrected"), alpha = 0.7) +
+  geom_point(aes(y = mean_drift_trans, color = "Drift Correction"), alpha = 0.7) +
   labs(
-    title = "Turbidity: Drift Corrected vs Uncorrected",
-    subtitle = "Cottonwood Site",
-    x = "Date",
-    y = "Turbidity (NTU)",
+    x = "Datetime",
+    y = "Turbidity",
     color = "Data Type"
   ) +
+  scale_alpha_manual(values = c("Uncorrected" = 0.3,
+                                "Drift Correction" = 0.6
+  )) +
   scale_color_manual(values = c("Uncorrected" = "gray50", 
-                                "One-Point Correction" = "steelblue")
+                                "Drift Correction" = "steelblue")
   ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  theme_bw() 
 ```
 
 Looks pretty good. There is a hump there that might suggest that the drift is
@@ -506,74 +531,74 @@ corrected_drift_df <- example_drift_fn %>%
     method = "l_starts",
     starts_col = "drift"
   )
-  map(function(drift_group_df){
-    
-    # applying a mutate here to work with `group_factor()`, but this mutate should
-    # actually be made when I "create a combined column for all drift/site_visit 
-    # combinations"
-    
-    # Drift = 1, NO Drift = 0
-    df <- drift_group_df %>% 
-      mutate(drift = ifelse(drift == TRUE, 1, 0)) 
-    
-    # Not all of these dfs have drift, so we can just skip those
-    # Check if there is only 1 group, and if there is, check if it is drift,
-    # else skip. If there are 2 groups, one of them is drift, so we are not going to check 
-    # that right now
-    if(length(unique(df$drift)) == 1 && unique(df$drift) == 0) return(df)
-    
-    # cal one point drift handles missing calibration data, so lets split these 
-    # Site visit groups into drift and non drift groups
-    df <- df %>% 
-      groupdata2::splt(
-        n = "auto",
-        method = "l_starts",
-        starts_col = "drift"
-      ) %>% 
-      map(
-        function(drift_group) {
-          # First check if it is not a drift group, and skip if not
-          if(unique(drift_group$drift) == 0) return(drift_group)
-          
-          # >>>> DRIFT CORRECTION STEP <<<<
-          # If it is a drift group, pass it through the weighting and 
-          # one point calibration functions
-          
-          # Check which "post" value we should use, and then use that.
-          post_cal <- df[["turb_post_cal"]][[nrow(df)]]
-          post_clean <- df[["turb_post_clean"]][[nrow(df)]]
-          
-          if (!is.na(post_cal)) {
-            corrected_drift_group <- drift_group %>% 
-              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
-              cal_exp_one_point_drift(
-                lm_trans_col = "mean", 
-                pre_col = "turb_pre_clean", 
-                post_col = "turb_post_cal", 
-                wt_col = "wt",
-                drift_type = "exponential",
-                correction_type = "multiplicative"
-              )
-          } else if (!is.na(post_clean)) {
-            corrected_drift_group <- drift_group %>% 
-              ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
-              cal_exp_one_point_drift(
-                lm_trans_col = "mean", 
-                pre_col = "turb_pre_clean", 
-                post_col = "turb_post_clean", 
-                wt_col = "wt",
-                drift_type = "exponential",
-                correction_type = "multiplicative"
-              )
-          } else {
-            return(drift_group)
-          }
-          
-          return(corrected_drift_group)
+map(function(drift_group_df){
+  
+  # applying a mutate here to work with `group_factor()`, but this mutate should
+  # actually be made when I "create a combined column for all drift/site_visit 
+  # combinations"
+  
+  # Drift = 1, NO Drift = 0
+  df <- drift_group_df %>% 
+    mutate(drift = ifelse(drift == TRUE, 1, 0)) 
+  
+  # Not all of these dfs have drift, so we can just skip those
+  # Check if there is only 1 group, and if there is, check if it is drift,
+  # else skip. If there are 2 groups, one of them is drift, so we are not going to check 
+  # that right now
+  if(length(unique(df$drift)) == 1 && unique(df$drift) == 0) return(df)
+  
+  # cal one point drift handles missing calibration data, so lets split these 
+  # Site visit groups into drift and non drift groups
+  df <- df %>% 
+    groupdata2::splt(
+      n = "auto",
+      method = "l_starts",
+      starts_col = "drift"
+    ) %>% 
+    map(
+      function(drift_group) {
+        # First check if it is not a drift group, and skip if not
+        if(unique(drift_group$drift) == 0) return(drift_group)
+        
+        # >>>> DRIFT CORRECTION STEP <<<<
+        # If it is a drift group, pass it through the weighting and 
+        # one point calibration functions
+        
+        # Check which "post" value we should use, and then use that.
+        post_cal <- df[["turb_post_cal"]][[nrow(df)]]
+        post_clean <- df[["turb_post_clean"]][[nrow(df)]]
+        
+        if (!is.na(post_cal)) {
+          corrected_drift_group <- drift_group %>% 
+            ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+            cal_exp_one_point_drift(
+              lm_trans_col = "mean", 
+              pre_col = "turb_pre_clean", 
+              post_col = "turb_post_cal", 
+              wt_col = "wt",
+              drift_type = "exponential",
+              correction_type = "multiplicative"
+            )
+        } else if (!is.na(post_clean)) {
+          corrected_drift_group <- drift_group %>% 
+            ross.wq.tools::cal_wt(dt_col = "DT_round") %>% 
+            cal_exp_one_point_drift(
+              lm_trans_col = "mean", 
+              pre_col = "turb_pre_clean", 
+              post_col = "turb_post_clean", 
+              wt_col = "wt",
+              drift_type = "exponential",
+              correction_type = "multiplicative"
+            )
+        } else {
+          return(drift_group)
         }
-      ) %>% 
-      reduce(full_join)
-  }) %>% 
+        
+        return(corrected_drift_group)
+      }
+    ) %>% 
+    reduce(full_join)
+}) %>% 
   reduce(full_join)
 
 

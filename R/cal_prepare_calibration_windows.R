@@ -55,7 +55,6 @@
 #' @seealso [back_calibrate()]
 
 cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
-  # TODO: This function does very little now, consider assimilating it with previous prep functions
   # Process each year of joined sensor-calibration data
   prepped_yearly_site_param_chunks <- sensor_calibration_data_list %>%
     map(function(year){ # Iterate over each year's site-parameter list
@@ -91,16 +90,15 @@ cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
               return(tweaked_chunk)
             })
           calibration_chunks <- site_param_df %>%
-            # Ensure sensor_date_lead is properly formatted as Date
+            # Ensure sensor_date_lead is properly formatted as a string
+            # groupdata2:splt does not work with dates so we have to set
+            # the starting column as a character
             mutate(
-              sensor_date_lead = case_when(
-                is.na(sensor_date_lead) ~ NA_Date_,
-                sensor_date_lead == "" ~ NA_Date_,
-                TRUE ~ as.Date(sensor_date_lead)
-              ),
-              # groupdata2:splt does not work with dates so we have to set
-              # the starting column as a character
-              sensor_date_lead_char = as.character(sensor_date_lead)
+              sensor_date_lead_chr = case_when(
+                is.na(sensor_date_lead) ~ NA_character_,
+                sensor_date_lead == "" ~ NA_character_,
+                TRUE ~ as.character(sensor_date_lead)
+              )
             ) %>%
             # We want to group by when correct calibration column changes
             groupdata2::splt(
@@ -109,7 +107,7 @@ cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
               # We know that sensor data lead is `tidyr::fill`'ed with good calibrations.
               # Doing this allows us to make a group of a calibration chunk that is
               # now defined as the chunk of data between two sequential GOOD calibrations.
-              starts_col = "sensor_date_lead_char"
+              starts_col = "sensor_date_lead_chr"
             ) %>%
             # Remove chunks with missing sonde data
             discard(~all(is.na(.x$sonde_serial)))

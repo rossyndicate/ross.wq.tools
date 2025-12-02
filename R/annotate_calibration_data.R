@@ -36,6 +36,7 @@
 #' @examples
 #' \dontrun{
 #' # Process calibration data with quality flags
+#' # `read_calibration_file()` is pseudo code, not a real function
 #' calibration_data <- read_calibration_file("calibration_data.csv")
 #' annotated_data <- annotate_calibration_data(calibration_data)
 #'

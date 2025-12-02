@@ -19,8 +19,8 @@
 #' @seealso [join_sensor_calibration_data()]
 
 # TODO: Update this to accept xml2 generated HTML files for speed reasons
-cal_extract_markup_data <- function(field_cal_dir = here::here("data", "calibration_reports"),
-                                    benchtop_cal_dir = here::here("data", "calibration_reports", "benchtop_calibrations")){
+cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "sensor", "calibration_reports"),
+                                    benchtop_cal_dir = here::here("data", "raw","sensor", "calibration_reports", "benchtop_calibrations")){
 
   # Input validation
   if (!is.character(field_cal_dir) || length(field_cal_dir) != 1) {

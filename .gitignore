@@ -57,3 +57,6 @@ inst/doc
 # Scratch folders
 scratch*/
 sandbox*/
+
+# Data folders
+data/

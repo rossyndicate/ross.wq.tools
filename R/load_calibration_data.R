@@ -20,7 +20,7 @@
 #' @seealso [join_sensor_calibration_data()]
 
 # TODO: Update this to accept xml2 extracted HTML files
-load_calibration_data <- function(cal_data_file_path = here("data", "calibration_reports", "0_cal_data_munge", "munged_calibration_data.RDS"),
+load_calibration_data <- function(cal_data_file_path = here::here("data", "collated", "sensor", "cal_reports", "munged_calibration_data.RDS"),
                                   update = FALSE, ...) {
 
   # Input validation

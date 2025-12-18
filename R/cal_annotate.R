@@ -51,10 +51,10 @@ cal_annotate <- function(raw_calibration_df) {
   # Split data by sensor type and apply outlier detection
   annotated_calibration_data <- raw_calibration_df %>%
     split(f = .$sensor) %>%
-    map_dfr(function(sensor_df){
+    purrr::map_dfr(function(sensor_df){
 
       clean_df <- sensor_df %>%
-        mutate(
+        dplyr::mutate(
           offset = as.numeric(offset),
           slope = as.numeric(slope)
         )
@@ -82,8 +82,8 @@ cal_annotate <- function(raw_calibration_df) {
 
       # Apply quality criteria based on available parameters
       annotated_df <- clean_df %>%
-        mutate(
-          correct_calibration = case_when(
+        dplyr::mutate(
+          correct_calibration = dplyr::case_when(
             # Both parameters available - check both
             offset_has_data & slope_has_data ~
               is.finite(offset) & is.finite(slope) &
@@ -100,9 +100,9 @@ cal_annotate <- function(raw_calibration_df) {
           )
         ) %>%
         # This will be applied to everything, but really it is just for pH
-        group_by(file_date) %>%
-        mutate(correct_calibration = ifelse(any(!correct_calibration), FALSE, TRUE)) %>%
-        ungroup()
+        dplyr::group_by(file_date) %>%
+        dplyr::mutate(correct_calibration = ifelse(any(!correct_calibration), FALSE, TRUE)) %>%
+        dplyr::ungroup()
       return(annotated_df)
     })
   return(annotated_calibration_data)

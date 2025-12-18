@@ -23,5 +23,5 @@ priority over benchtop calibrations when both are available.
 \seealso{
 \code{\link[=load_calibration_data]{load_calibration_data()}}
 
-\code{\link[=join_sensor_calibration_data]{join_sensor_calibration_data()}}
+\code{\link[=cal_join_sensor_calibration_data]{cal_join_sensor_calibration_data()}}
 }

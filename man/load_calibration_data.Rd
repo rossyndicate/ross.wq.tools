@@ -32,5 +32,5 @@ site-parameter combinations for use throughout the calibration workflow.
 \seealso{
 \code{\link[=cal_extract_markup_data]{cal_extract_markup_data()}}
 
-\code{\link[=join_sensor_calibration_data]{join_sensor_calibration_data()}}
+\code{\link[=cal_join_sensor_calibration_data]{cal_join_sensor_calibration_data()}}
 }

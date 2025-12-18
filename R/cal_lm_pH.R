@@ -26,9 +26,9 @@ cal_lm_pH <- function(df, obs_col, slope_col, offset_col) {
 
   # Convert pH to millivolts
   df <- df %>%
-    mutate(
+    dplyr::mutate(
       # Apply linear transformation for low pH range: y = mx + b
-      !!mv_col := (slope * .data[[obs_col]]) + offset
+      !!mv_col := (.data[[slope_col]] * .data[[obs_col]]) + .data[[offset_col]]
     )
 
   return(df)

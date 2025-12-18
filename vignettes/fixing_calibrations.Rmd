@@ -132,9 +132,19 @@ according to the file name of the calibration file.
 
 ```{r load-snsr-data}
 # Read in 2023, 2024, and 2025 sensor data
-sensor_data <- readr::read_rds(
-  here::here("data", "raw", "sensor", "manual_data_verification", 
-             "complete_dataset",  "23_25_hv_pull"))
+# sensor_data <- readr::read_rds(
+# here::here("data", "raw", "sensor", "manual_data_verification",
+#            "complete_dataset",  "23_25_hv_pull"))
+
+sensor_data <- arrow::read_parquet(
+  here::here("data", "collated", "sensor", "compiled_ross_sensor_data_2025-12-11.parquet"),
+  as_data_frame = TRUE
+) %>%
+  split(f = lubridate::year(.$DT_round)) %>%
+  map(~ {
+    split_data <- split(.x, f = list(.x$site, .x$parameter), sep = "-")
+    discard(split_data, ~is.null(.) || nrow(.) == 0)
+  })
 ```
 
 ## Expected Sensor Data Structure
@@ -271,36 +281,57 @@ check_list <- calibrated_data %>%
 
 ```{r}
 # Function to make example plots
-
 ex_plot <- function(df) {
   parameter <- unique(df$parameter)
   site <- unique(df$site)
   year <- lubridate::year(df$DT_round)[1]
   
-  # Create separate data frames
-  original_data <- df %>% 
-    select(DT_round, value = mean)
+  # Combine all data into one data frame with descriptive categories
+  combined_data <- bind_rows(
+    # Original data
+    df %>% 
+      select(DT_round, value = mean_cleaned, correct_calibration) %>%
+      mutate(data_type = ifelse(correct_calibration, 
+                               "Original Data (Good Calibration)", 
+                               "Original Data (Bad Calibration)")),
+    # Calibrated data
+    df %>%
+      select(DT_round, value = mean_cleaned_cal) %>%
+      mutate(data_type = "Calibrated Data")
+  )
   
-  calibrated_data_df <- df %>%
-    select(DT_round, value = mean_cal, correct_calibration)
+  # Create vline dataframe
+  vline_df <- df %>% 
+    group_by(sensor_date) %>% 
+    slice_min(DT_round, n = 1) %>%
+    arrange(DT_round)
   
-  # Create plot with separate geom_line layers
-  p <- ggplot() +
-    geom_line(data = original_data, aes(x = DT_round, y = value), 
-              color = "grey", linewidth = 0.3) +
-    geom_line(data = calibrated_data_df, 
-              aes(x = DT_round, y = value, color = correct_calibration), 
-              linewidth = 0.5) +
-    scale_color_manual(values = c("TRUE" = "green", "FALSE" = "red"),
-                       name = "Calibrated Data") +
+  # Single plot with one geom_line
+  p <- ggplot(combined_data, aes(x = DT_round, y = value, color = data_type)) +
+    geom_line(linewidth = 0.3, alpha = 0.8) +
+    scale_color_manual(
+      values = c(
+        "Original Data (Good Calibration)" = "springgreen4", 
+        "Original Data (Bad Calibration)" = "tomato",
+        "Back-calibrated Data" = "steelblue"
+      ),
+      name = "Data Type"
+    ) +
+    geom_vline(xintercept = vline_df$DT_round) +
     labs(
       title = paste(site, parameter, year, "Calibration"),
-      x = "Date",
+      x = NULL,
       y = paste(parameter, "(units)")
     ) +
     theme_minimal()
   
-  p <- ggplotly(p)
+  p <- ggplotly(p) %>%
+  layout(legend = list(
+    orientation = "h",    # horizontal
+    x = 0.5,             # center horizontally
+    xanchor = 'center',  # anchor at center
+    y = -0.1             # position below plot
+  ))
   
   return(p)
 }
@@ -309,17 +340,16 @@ ex_plot <- function(df) {
 ```{r}
 # Explore the data
 # Update `plot_df` and run this chunk to plot the data you want to see
-plot_df <- calibrated_data$`2024`$`joei-pH`
+plot_df <- calibrated_data$`2024`$`cottonwood-DO`
 ex_plot(plot_df)
 ```
 
 ```{r}
 # Explore the calibrations that were used
 plot_df %>% 
-  filter(!is.na(units)) %>% 
-  group_by(slope, offset) %>% 
-  slice(1) %>% 
-  arrange(DT_round) %>% 
+  group_by(sensor_date) %>% 
+  slice_min(DT_round, n = 1) %>%
+  arrange(DT_round) %>%
   View(.)
 ```
 

@@ -59,7 +59,7 @@ cal_inv_lm <- function(df, obs_col, slope_col, offset_col){
 
   # Apply inverse linear model transformation: x = (y - b) / m
   df <- df %>%
-    mutate(!!raw_col := (.data[[obs_col]] - offset) / slope)
+    dplyr::mutate(!!raw_col := (.data[[obs_col]] - .data[[offset_col]]) / .data[[slope_col]])
 
   return(df)
 }

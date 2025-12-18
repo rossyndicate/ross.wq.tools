@@ -7,7 +7,7 @@
 #' the noise characteristics of optical turbidity sensors, which are prone to rapid 
 #' fluctuations due to suspended particles, biofouling, and electronic interference.
 #' 
-#' The filter uses a binomial kernel with weights [1,4,6,4,1] normalized by dividing by 16, which provides
+#' The filter uses a binomial kernel with weights \[1,4,6,4,1\] normalized by dividing by 16, which provides
 #' a Gaussian-like smoothing effect. This kernel gives the greatest influence to the 
 #' current measurement, moderate influence to the measurements 15 minutes before and 
 #' after, and least influence to the measurements 30 minutes before and after. The 
@@ -35,7 +35,7 @@ low_pass_filter <- function(df) {
   # Only apply low pass filter to turbidity data due to its susceptibility to optical noise
   if (unique(df$parameter) == "Turbidity") {
     
-    # Define 5-point binomial kernel function with weights [1,4,6,4,1]
+    # Define 5-point binomial kernel function with weights \[1,4,6,4,1\]
     binomial_kernel <- function(int_vec) {
       kernel <- c(1, 4, 6, 4, 1)  
       x <- sum(int_vec * kernel) / 16  

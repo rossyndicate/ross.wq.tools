@@ -38,19 +38,19 @@ cal_back_calibrate <- function(prepped_snsr_cal_df) {
 
   # Apply temporally-weighted linear transformation between calibrations ====
   # Standard sensor calibration pathway
-  if (parameter %in% c("Chl-a Fluorescence", "FDOM Fluorescence", "ORP", "Pressure", "Specific Conductivity", "RDO", "Turbidity")) {
+  if (parameter %in% c("Chl-a Fluorescence", "FDOM Fluorescence", "ORP", "Pressure", "Specific Conductivity", "DO", "Turbidity")) {
     back_calibrated_chunk <- chunk_w_time %>%
       cal_inv_lm(
         df = .,
-        obs_col = "mean",
-        slope_col = "slope_final",
-        offset_col = "offset_final"
+        obs_col = "mean_cleaned",
+        slope_col = "slope",
+        offset_col = "offset"
       ) %>%
       cal_lin_trans_lm(
         df = .,
-        raw_col = "mean_raw",
-        slope_col = "slope_final",
-        offset_col = "offset_final",
+        raw_col = "mean_cleaned_raw",
+        slope_from_col = "slope_final", offset_from_col = "offset_final",
+        slope_to_col = "slope_lead", offset_to_col = "offset_lead",
         wt_col = "wt"
       )
   }
@@ -60,43 +60,45 @@ cal_back_calibrate <- function(prepped_snsr_cal_df) {
     back_calibrated_chunk <- chunk_w_time %>%
       cal_lm_pH(
         df = .,
-        obs_col = "mean",
-        slope_col = "slope_final",
-        offset_col = "offset_final"
+        obs_col = "mean_cleaned",
+        slope_col = "slope",
+        offset_col = "offset"
       ) %>%
       cal_lin_trans_inv_lm_pH(
         df = .,
-        mv_col = "mean_raw",
-        slope_col = "slope_final",
-        offset_col = "offset_final",
+        mv_col = "mean_cleaned_raw",
+        slope_from_col = "slope_final", offset_from_col = "offset_final",
+        slope_to_col = "slope_lead", offset_to_col = "offset_lead",
         wt_col = "wt"
       ) %>%
-      group_by(DT_join) %>%
-      filter(is.na(mean) | (mean < 7 & point == 1) | (mean >= 7 & point == 2)) %>%
+      dplyr::group_by(DT_round) %>%
+      # TODO: update this filter to mean_cleaned
+      dplyr::filter(is.na(mean) | (mean < 7 & point == 1) | (mean >= 7 & point == 2)) %>%
       slice_min(point) %>%
-      ungroup() %>%
-      arrange(DT_round)
+      dplyr::ungroup() %>%
+      dplyr::arrange(DT_round)
   }
 
   # Validate calibration results and create final calibrated values ====
   checked_df <- back_calibrated_chunk  %>%
-    cal_check(df = ., obs_col = "mean", lm_trans_col = "mean_lm_trans")
+    cal_check(df = ., obs_col = "mean_cleaned", lm_trans_col = "mean_lm_trans")
 
   # Reorder the final columns to make post hoc analysis easier ====
   final_df <- checked_df %>%
-    select(
+    dplyr::select(
       # DT sensor reading columns
-      DT_round, DT_join,
+      DT_round,
       # Field ID columns
-      site, sonde_serial, parameter, units,
+      site, sonde_serial, parameter,
       # Sensor reading transformation columns
-      mean, mean_raw, mean_lm_trans, mean_cal, cal_check,
+      mean_cleaned, mean_cleaned_raw, mean_lm_trans, mean_cleaned_cal, cal_check,
+      # Sensor information
+      sensor_serial,
       # DT calibration information columns
       file_date, sonde_date, sensor_date_lag, sensor_date, sensor_date_lead,
       # Calibration information columns
       correct_calibration, slope_lag, offset_lag, slope, offset, slope_final, offset_final, slope_lead, offset_lead,
-      # other
-      flag
+      wt
       # Remove everything else
     )
 

@@ -13,7 +13,7 @@
 #'   field calibration HTML files (default: data/calibration_reports/)
 #'
 #' @seealso [load_calibration_data()]
-#' @seealso [join_sensor_calibration_data()]
+#' @seealso [cal_join_sensor_calibration_data()]
 
 cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "sensor", "calibration_reports")) {
 
@@ -131,7 +131,7 @@ cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "s
             sensor == "p_h" ~ "pH",
             sensor == "orp" ~ "ORP",
             sensor == "pressure" ~ "Pressure",
-            sensor == "rdo" ~ "RDO",
+            sensor == "rdo" ~ "DO",
             sensor == "turbidity" ~ "Turbidity",
             .default = sensor
           )
@@ -194,7 +194,7 @@ cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "s
 
             point2_processed <- ross.wq.tools::cal_succession(point2_df)
 
-            joined_dfs <- bind_rows(point1_processed, point2_processed) %>%
+            joined_dfs <- dplyr::bind_rows(point1_processed, point2_processed) %>%
               dplyr::arrange(sensor_date, point)
 
             return(joined_dfs)

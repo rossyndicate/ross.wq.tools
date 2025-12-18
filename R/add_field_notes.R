@@ -42,51 +42,51 @@
 #' @seealso [add_field_flag()]
 
 add_field_notes <- function(df, notes) {
-  
+
   # Extract site and parameter information from the input data
   site_arg <- unique(df$site)
   parameter_arg <- unique(df$parameter)
-  
+
   # Filter field notes to include only those relevant to this site
   # This uses a flexible matching approach that handles variations in site naming
   site_field_notes <- notes %>%
-    dplyr::filter(grepl(paste(unlist(stringr::str_split(site_arg, " ")), 
+    dplyr::filter(grepl(paste(unlist(stringr::str_split(site_arg, " ")),
                               collapse = "|"), site, ignore.case = TRUE))
-  
+
   # Process the data within a tryCatch to handle potential errors
   tryCatch({
     summary <- df %>%
       # Remove any duplicate records that might have been introduced
       dplyr::distinct() %>%
-      
+
       # Join the time series data with relevant field note information
       # This adds human observations to the sensor readings
-      dplyr::full_join(., dplyr::select(site_field_notes, 
+      dplyr::full_join(., dplyr::select(site_field_notes,
                                         sonde_employed, sonde_moved,
                                         last_site_visit, DT_join, visit_comments,
                                         sensor_malfunction, cals_performed),
                        by = c('DT_join')) %>%
-      
+
       # Ensure proper temporal ordering of the combined data
       arrange((DT_join)) %>%
-      
+
       # Ensure timestamps remain in correct datetime format after joining
       dplyr::mutate(DT_round = lubridate::as_datetime(DT_join, tz = "UTC")) %>%
-      
+
       # Set default sonde_employed status (0 = deployed/in water)
       # and forward-fill deployment status and site visit information
       # This maintains status continuity between discrete field observations
       dplyr::mutate(sonde_employed = ifelse(is.na(sonde_employed), 0, sonde_employed)) %>%
       tidyr::fill(c(sonde_employed, last_site_visit, sensor_malfunction)) %>%
-      
+
       # Handle special case: If no site visit information exists at the beginning
       # of the record, assume sonde was not yet deployed (sonde_employed = 1)
       dplyr::mutate(sonde_employed = ifelse(is.na(last_site_visit), 1, sonde_employed)) %>%
-      
+
       # Final cleanup of any duplicates and rows with missing site information
       dplyr::distinct(.keep_all = TRUE) %>%
       dplyr::filter(!is.na(site))
-    
+
     # Return the joined data
     return(summary)
   },

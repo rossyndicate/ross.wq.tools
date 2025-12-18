@@ -32,20 +32,20 @@ cal_one_point_drift <- function(df, lm_trans_col, drift_corr_col, wt_col){
   # Handle missing calibration data
   if (!is.data.frame(drift_back_calibration) || nrow(drift_back_calibration) == 0) {
     df <- df %>%
-      mutate(!!transformed_col := NA_integer_)
+      dplyr::mutate(!!transformed_col := NA_integer_)
     return(df)
   }
 
   # Extract calibration standard values for drift calculation
-  expected_standard <- as.numeric(drift_back_calibration %>% pull(post_measurement))
-  observed_standard <- as.numeric(drift_back_calibration %>% pull(pre_measurement))
+  expected_standard <- as.numeric(drift_back_calibration %>% dplyr::pull(post_measurement))
+  observed_standard <- as.numeric(drift_back_calibration %>% dplyr::pull(pre_measurement))
 
   # Calculate drift offset between expected and observed standards
   standard_delta <- expected_standard - observed_standard
 
   # Apply temporally-weighted drift correction: C_t = m_t + w_t(delta_S)
   df <- df %>%
-    mutate(!!transformed_col := .data[[lm_trans_col]] + (.data[[wt_col]]*standard_delta))
+    dplyr::mutate(!!transformed_col := .data[[lm_trans_col]] + (.data[[wt_col]]*standard_delta))
 
   return(df)
 }

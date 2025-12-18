@@ -35,19 +35,19 @@ cal_three_point_drift_pH <- function(df, obs_col, lm_trans_col, drift_corr_col, 
   # Handle missing drift calibration data
   if (!is.data.frame(drift_back_calibration) || nrow(drift_back_calibration) == 0){
     df <- df %>%
-      mutate(!!drift_f := NA_integer_)
+      dplyr::mutate(!!drift_f := NA_integer_)
     return(df)
   }
 
   # Filter drift data to relevant columns
   drift_back_calibration <- drift_back_calibration %>%
-    select(point, type, p_h)
+    dplyr::select(point, type, p_h)
 
   # Extract expected values for the three pH standards (type == 2)
   expected_standards <- drift_back_calibration %>%
-    group_by(point) %>%
-    filter(type == 2) %>%
-    pull(p_h)
+    dplyr::group_by(point) %>%
+    dplyr::filter(type == 2) %>%
+    dplyr::pull(p_h)
 
   a_e <- as.numeric(expected_standards[1])  # Low pH standard expected
   b_e <- as.numeric(expected_standards[2])  # Medium pH standard expected
@@ -59,9 +59,9 @@ cal_three_point_drift_pH <- function(df, obs_col, lm_trans_col, drift_corr_col, 
 
   # Extract observed values for the three pH standards (type == 1)
   observed_standards <- drift_back_calibration %>%
-    group_by(point) %>%
-    filter(type == 1) %>%
-    pull(p_h)
+    dplyr::group_by(point) %>%
+    dplyr::filter(type == 1) %>%
+    dplyr::pull(p_h)
 
   a_o <- as.numeric(observed_standards[1])  # Low pH standard observed
   b_o <- as.numeric(observed_standards[2])  # Medium pH standard observed
@@ -74,7 +74,7 @@ cal_three_point_drift_pH <- function(df, obs_col, lm_trans_col, drift_corr_col, 
 
   # Apply temporally-weighted three-point drift correction
   df <- df %>%
-    mutate(
+    dplyr::mutate(
       # Calculate temporally-adjusted standard values
       a_t = a_e + (.data[[wt_col]] * delta_a),  # Weighted low standard
       b_t = b_e + (.data[[wt_col]] * delta_b),  # Weighted medium standard
@@ -85,7 +85,7 @@ cal_three_point_drift_pH <- function(df, obs_col, lm_trans_col, drift_corr_col, 
       # Select appropriate correction based on original pH value
       !!drift_f := ifelse(.data[[obs_col]] >= 7, drift_2, drift_1)
     ) %>%
-    select(-c(a_t, b_t, c_t, drift_1, drift_2))  # Remove intermediate columns
+    dplyr::select(-c(a_t, b_t, c_t, drift_1, drift_2))  # Remove intermediate columns
 
   return(df)
 }

@@ -4,21 +4,34 @@
 \alias{cal_lin_trans_lm}
 \title{Linear Transition Between Linear Models}
 \usage{
-cal_lin_trans_lm(df, raw_col, slope_col, offset_col, wt_col)
+cal_lin_trans_lm(
+  df,
+  raw_col,
+  slope_from_col,
+  offset_from_col,
+  slope_to_col,
+  offset_to_col,
+  wt_col
+)
 }
 \arguments{
 \item{df}{Tibble containing sensor data bounded by two calibrations. Must
-include lead calibration parameters (slope_lead, offset_lead) for the
-temporal interpolation.}
+include calibration parameters for the temporal interpolation.}
 
 \item{raw_col}{Character string specifying the column name containing raw
 observation values from the inverse linear model transformation}
 
-\item{slope_col}{Character string specifying the column name containing
+\item{slope_from_col}{Character string specifying the column name containing
 slope coefficients from the first (earliest) calibration}
 
-\item{offset_col}{Character string specifying the column name containing
+\item{offset_from_col}{Character string specifying the column name containing
 offset coefficients from the first (earliest) calibration}
+
+\item{slope_to_col}{Character string specifying the column name containing
+slope coefficients from the second (latest) calibration}
+
+\item{offset_to_col}{Character string specifying the column name containing
+offset coefficients from the second (latest) calibration}
 
 \item{wt_col}{Character string specifying the column name containing temporal
 weight parameters for interpolation between calibrations}
@@ -38,8 +51,7 @@ The transformation accounts for gradual sensor drift by blending calibration
 parameters based on time position.
 }
 \details{
-The function uses hard-coded "slope_lead" and "offset_lead" columns for the
-second calibration parameters. The temporal interpolation formula is:
+The temporal interpolation formula is:
 y = (m₁ - wt(m₁ - m₂))x + (b₁ - wt(b₁ - b₂))
 where wt represents the temporal weight between 0 and 1.
 }

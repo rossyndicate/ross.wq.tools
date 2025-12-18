@@ -10,7 +10,7 @@ cal_extract_turbidity_data <- function(div) {
       {div %>%
         html_elements("caption") %>%
         html_text() %>%
-        make_clean_names()
+        janitor::make_clean_names()
       }
     )
 
@@ -24,10 +24,10 @@ cal_extract_turbidity_data <- function(div) {
   # If there is only 1 table in the div exit early and return metadata ...
   if (!div_check) {
     div_metadata <- div_tables[["sensor"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
-      rename(sensor_serial = serial_number) %>%
-      mutate(
-        sensor = make_clean_names(sensor),
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
+      dplyr::rename(sensor_serial = serial_number) %>%
+      dplyr::mutate(
+        sensor = janitor::make_clean_names(sensor),
         calibration_coefs = NULL,
         driftr_input = NULL
       )
@@ -37,9 +37,9 @@ cal_extract_turbidity_data <- function(div) {
 
   # Turbidity div metadata ----
   div_metadata <- div_tables[["sensor"]] %>%
-    pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names)  %>%
-    rename(sensor_serial = serial_number) %>%
-    mutate(sensor = make_clean_names(sensor))
+    tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names)  %>%
+    dplyr::rename(sensor_serial = serial_number) %>%
+    dplyr::mutate(sensor = janitor::make_clean_names(sensor))
 
   # In-situ calibration coefficients ----
   # Check if the table we expect for the calibration coefficients exists in the structure we expect...
@@ -51,15 +51,15 @@ cal_extract_turbidity_data <- function(div) {
 
   if(cal_coef_check) {
     calibration_coefs <- div_tables[["calibration_details"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
       separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
-      mutate(across(c("slope", "offset"), ~as.numeric(.x)))
+      dplyr::mutate(dplyr::across(c("slope", "offset"), ~as.numeric(.x)))
   } else {
     calibration_coefs <- NULL
   }
 
   # Return ----
-  turb_cal_info <- bind_cols(div_metadata, calibration_coefs)
+  turb_cal_info <- dplyr::bind_cols(div_metadata, calibration_coefs)
 
   return(turb_cal_info)
 }

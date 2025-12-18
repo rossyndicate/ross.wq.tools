@@ -67,5 +67,5 @@ calibration_windows <- cal_prepare_calibration_windows(joined_data)
 
 }
 \seealso{
-\code{\link[=join_sensor_calibration_data]{join_sensor_calibration_data()}}
+\code{\link[=cal_join_sensor_calibration_data]{cal_join_sensor_calibration_data()}}
 }

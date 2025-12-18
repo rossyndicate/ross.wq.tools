@@ -11,7 +11,7 @@ cal_extract_ph_orp_data <- function(div) {
       {div %>%
           html_elements("caption") %>%
           html_text() %>%
-          make_clean_names()
+          janitor::make_clean_names()
       }
     )
 
@@ -25,12 +25,12 @@ cal_extract_ph_orp_data <- function(div) {
   # If there is only 1 table in the div exit early and return metadata ...
   if (!div_check) {
     div_metadata <- div_tables[["sensor"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
-      rename(sensor_serial = serial_number) %>%
-      mutate(sensor = str_split(sensor, "/")) %>%
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
+      dplyr::rename(sensor_serial = serial_number) %>%
+      dplyr::mutate(sensor = str_split(sensor, "/")) %>%
       unnest(sensor) %>%
-      mutate(
-        sensor = make_clean_names(sensor),
+      dplyr::mutate(
+        sensor = janitor::make_clean_names(sensor),
         calibration_coefs = NULL,
         driftr_input = NULL
       )
@@ -40,11 +40,11 @@ cal_extract_ph_orp_data <- function(div) {
 
   # pH and ORP metadata ----
   div_metadata <- div_tables[["sensor"]] %>%
-    pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names)  %>%
-    rename(sensor_serial = serial_number) %>%
-    mutate(sensor = str_split(sensor, "/")) %>%
+    tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names)  %>%
+    dplyr::rename(sensor_serial = serial_number) %>%
+    dplyr::mutate(sensor = str_split(sensor, "/")) %>%
     unnest(sensor) %>%
-    mutate(sensor = make_clean_names(sensor))
+    dplyr::mutate(sensor = janitor::make_clean_names(sensor))
 
   # pH ----
   ## In-situ calibration coefficients ----
@@ -66,15 +66,15 @@ cal_extract_ph_orp_data <- function(div) {
     calibration_coefs_ph <- div_tables[c("slope_and_offset_1", "slope_and_offset_2")] %>%
       map_dfr(function(ph_coef_df){
         pivot_df <- ph_coef_df %>%
-          pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names)
+          tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names)
       }) %>%
       separate_wider_delim(slope, delim = " ", names = c("slope", "slope_units")) %>%
       separate_wider_delim(offset, delim = " ", names = c("offset", "offset_units")) %>%
-      mutate(
+      dplyr::mutate(
         point = c(1,2),
-        across(c(slope, offset), ~as.numeric(.x))
+        dplyr::across(c(slope, offset), ~as.numeric(.x))
       ) %>%
-      relocate(point, .before = "slope")
+      dplyr::relocate(point, .before = "slope")
 
   } else {
     calibration_coefs_ph <- NULL
@@ -91,14 +91,14 @@ cal_extract_ph_orp_data <- function(div) {
 
   if(cal_coef_check_orp){
     calibration_coefs_orp <- div_tables[["orp"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
-      mutate(
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
+      dplyr::mutate(
         slope = 1,
-        orp_solution = make_clean_names(orp_solution)
+        orp_solution = janitor::make_clean_names(orp_solution)
       ) %>%
       separate_wider_delim(offset, delim = " ", names = c("offset", "offset_units")) %>%
-      mutate(across(c(slope, offset), ~as.numeric(.x))) %>%
-      select(slope, offset, offset_units)
+      dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x))) %>%
+      dplyr::select(slope, offset, offset_units)
   } else {
     calibration_coefs_orp <- NULL
   }
@@ -112,7 +112,7 @@ cal_extract_ph_orp_data <- function(div) {
     dplyr::filter(sensor == "orp") %>%
     dplyr::bind_cols(calibration_coefs_orp)
 
-  ph_orp_info <- bind_rows(ph_info, orp_info)
+  ph_orp_info <- dplyr::bind_rows(ph_info, orp_info)
 
   return(ph_orp_info)
 }

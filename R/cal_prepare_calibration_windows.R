@@ -54,7 +54,7 @@
 #' calibration_windows <- cal_prepare_calibration_windows(joined_data)
 #' }
 #'
-#' @seealso [join_sensor_calibration_data()]
+#' @seealso [cal_join_sensor_calibration_data()]
 
 cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
   # Process each year of joined sensor-calibration data
@@ -77,8 +77,8 @@ cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
               # Split by consecutive good calibrations within each sensor period
               snsr_srl_list %>%
                 # Convert sensor_date_lead to character for grouping
-                mutate(
-                  sensor_date_lead_chr = case_when(
+                dplyr::mutate(
+                  sensor_date_lead_chr = dplyr::case_when(
                     is.na(sensor_date_lead) ~ NA_character_,
                     sensor_date_lead == "" ~ NA_character_,
                     TRUE ~ as.character(sensor_date_lead)
@@ -97,7 +97,7 @@ cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
             map(function(cal_window) {
               # Assign final calibration parameters based on calibration quality
               cal_window %>%
-                mutate(
+                dplyr::mutate(
                   slope_final = ifelse(correct_calibration, slope, slope_lag),
                   offset_final = ifelse(correct_calibration, offset, offset_lag)
                 )

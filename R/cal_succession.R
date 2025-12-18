@@ -21,12 +21,34 @@ cal_succession <- function(df) {
       )
   } else {
     # If no good calibrations, return the df as is
-    return(df)
+    good_calibrations <- df %>%
+      dplyr::mutate(
+        sensor_date_lead = NA,
+        slope_lead = NA,
+        offset_lead = NA,
+        sensor_date_lag = NA,
+        slope_lag = NA,
+        offset_lag = NA
+      )
+    return(good_calibrations)
   }
 
   # Check if we have any bad calibrations
   bad_calibrations <- df %>%
     dplyr::filter(!correct_calibration)
+
+  # If we have bad calibrations, add the expected columns to them too
+  if (nrow(bad_calibrations) > 0) {
+    bad_calibrations <- bad_calibrations %>%
+      dplyr::mutate(
+        sensor_date_lead = NA,
+        slope_lead = NA,
+        offset_lead = NA,
+        sensor_date_lag = NA,
+        slope_lag = NA,
+        offset_lag = NA
+      )
+  }
 
   # Combine them
   calibrations <- dplyr::bind_rows(good_calibrations, bad_calibrations) %>%
@@ -34,12 +56,12 @@ cal_succession <- function(df) {
     # forward fill the next good calibration
     tidyr::fill(
       sensor_date_lead, slope_lead, offset_lead,
-      .direction = "down"
+      .direction = "downup"
     ) %>%
     # backward fill the last good calibration
     tidyr::fill(
       sensor_date_lag, slope_lag, offset_lag,
-      .direction = "up"
+      .direction = "updown"
     )
 
   return(calibrations)

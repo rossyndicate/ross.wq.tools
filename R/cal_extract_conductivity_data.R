@@ -11,7 +11,7 @@ cal_extract_conductivity_data <- function(div) {
       {div %>%
         html_elements("caption") %>%
         html_text() %>%
-        make_clean_names()
+        janitor::make_clean_names()
       }
     )
 
@@ -25,10 +25,10 @@ cal_extract_conductivity_data <- function(div) {
   # If there is only 1 table in the div exit early and return metadata ...
   if (!div_check) {
     div_metadata <- div_tables[["sensor"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
-      rename(sensor_serial = serial_number) %>%
-      mutate(
-        sensor = make_clean_names(sensor),
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
+      dplyr::rename(sensor_serial = serial_number) %>%
+      dplyr::mutate(
+        sensor = janitor::make_clean_names(sensor),
         calibration_coefs = NULL,
         driftr_input = NULL
       )
@@ -38,9 +38,9 @@ cal_extract_conductivity_data <- function(div) {
 
   # Conductivity div metadata ----
   div_metadata <- div_tables[["sensor"]] %>%
-    pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names)  %>%
-    rename(sensor_serial = serial_number) %>%
-    mutate(sensor = make_clean_names(sensor))
+    tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names)  %>%
+    dplyr::rename(sensor_serial = serial_number) %>%
+    dplyr::mutate(sensor = janitor::make_clean_names(sensor))
 
   # In-situ calibration coefficients ----
   # Check if the table we expect for the calibration coefficients exists in the structure we expect...
@@ -58,22 +58,22 @@ cal_extract_conductivity_data <- function(div) {
 
   if(cal_slope_check && cal_offset_check){
     calibration_coefs <- div_tables[["calibration_details"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
       separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
-      select(slope = cell_constant, offset, units) %>%
-      mutate(across(c(slope, offset), ~as.numeric(.x)))
+      dplyr::select(slope = cell_constant, offset, units) %>%
+      dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x)))
   } else if(cal_slope_check && !cal_offset_check) {
     calibration_coefs <- div_tables[["calibration_details"]] %>%
-      pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names) %>%
-      mutate(offset = 0, units = "µS/cm") %>%
-      select(slope = cell_constant, offset, units) %>%
-      mutate(across(c(slope, offset), ~as.numeric(.x)))
+      tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
+      dplyr::mutate(offset = 0, units = "µS/cm") %>%
+      dplyr::select(slope = cell_constant, offset, units) %>%
+      dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x)))
   } else {
     calibration_coefs <- NULL
   }
 
   # Return ----
-  cond_cal_info <- bind_cols(div_metadata, calibration_coefs)
+  cond_cal_info <- dplyr::bind_cols(div_metadata, calibration_coefs)
 
   return(cond_cal_info)
 }

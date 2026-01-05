@@ -97,7 +97,11 @@ cal_back_calibrate <- function(prepped_snsr_cal_df) {
       # DT calibration information columns
       file_date, sonde_date, sensor_date_lag, sensor_date, sensor_date_lead,
       # Calibration information columns
-      correct_calibration, slope_lag, offset_lag, slope, offset, slope_final, offset_final, slope_lead, offset_lead,
+      correct_calibration,
+      slope_lag, offset_lag,
+      slope, offset,
+      slope_final, offset_final,
+      slope_lead, offset_lead,
       wt
       # Remove everything else
     )

@@ -36,7 +36,7 @@
 #' @seealso [cal_lm_pH()]
 #' @seealso [cal_three_point_drift_pH()]
 
-cal_lin_trans_inv_lm_pH <- function(df = ., mv_col,
+cal_lin_trans_inv_lm_pH <- function(df, mv_col,
                                     slope_from_col, offset_from_col,
                                     slope_to_col, offset_to_col,
                                     wt_col) {

@@ -4,11 +4,31 @@
 \alias{cal_back_calibrate}
 \title{Back Calibration Orchestrator}
 \usage{
-cal_back_calibrate(prepped_snsr_cal_df)
+cal_back_calibrate(prepped_snsr_cal_df, obs_column = "mean")
 }
 \arguments{
 \item{prepped_snsr_cal_df}{Tibble containing prepared sensor calibration data
-chunk from prepare_sensor_calibration_data(), bounded by two calibrations}
+chunk from \code{cal_prepare_calibration_windows()}, bounded by two calibrations.
+
+Must contain the following columns:
+From \code{munge_api_data()} and \code{tidy_api_data}: DT_round, site, parameter, mean (or other obs_column)
+From \code{cal_prepare_calibration_windows()}: sonde_serial, sensor_serial, file_date, sonde_date,
+sensor_date, sensor_date_lag, sensor_date_lead, correct_calibration, slope_lag, offset_lag,
+slope, offset, slope_lead, offset_lead, slope_final, offset_final}
+
+\item{obs_column}{String indicating the column name of the observations to be back-calibrated (default: "mean")}
+}
+\value{
+For recognized parameters, returns the back-calibrated dataframe with the following columns added:
+\itemize{
+\item \verb{<obs_column>_raw}: Raw sensor values after inverse linear transformation
+\item \verb{<obs_column>_lm_trans}: Linearly transformed values between calibrations
+\item \verb{<obs_column>_cal}: Final calibrated values after back calibration was performed. If \code{correct_calibration} == \code{FALSE},
+this column contains the calibrated values; if \code{TRUE}, it contains the original observations.
+\item \code{cal_check}: Logical flag indicating whether calibration was successful (\code{TRUE}) or failed (\code{FALSE})
+}
+
+Columns from \code{cal_prepare_calibration_windows()} are retained for context but any additional columns will be removed.
 }
 \description{
 Orchestrates the complete back calibration workflow for sensor data chunks
@@ -24,6 +44,9 @@ pH calibration requires special handling due to:
 \item Three-point calibration creating two slope transitions
 \item Need for unit conversion from pH to mV for back-calibration
 }
+
+For a detailed walkthrough of using this function, \code{cal_prepare_calibration_windows()}, \code{cal_join_sensor_calibration_data()} and \code{load_calibration_data()},
+see \code{vignette("fixing_calibrations")}.
 }
 \seealso{
 \code{\link[=cal_wt]{cal_wt()}}

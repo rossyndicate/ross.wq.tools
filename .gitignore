@@ -19,6 +19,7 @@
 /*.Rcheck/
 
 # RStudio files
+ross.wq.tools.Rproj
 .Rproj.user/
 
 # produced vignettes
@@ -60,3 +61,5 @@ sandbox*/
 
 # Data folders
 data/
+
+

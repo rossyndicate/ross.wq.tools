@@ -2,27 +2,72 @@
 % Please edit documentation in R/cal_inv_lm.R
 \name{cal_inv_lm}
 \alias{cal_inv_lm}
-\title{Inverse Linear Model Transformation}
+\title{Back Calibration Orchestrator}
 \usage{
-cal_inv_lm(df, obs_col, lm_coefs_col)
+cal_inv_lm(df, obs_col, slope_col, offset_col)
 }
 \arguments{
-\item{df}{Tibble containing sensor data bounded by two calibrations}
-
-\item{obs_col}{Character string specifying the column name containing
-observations recorded in HydroVu}
-
-\item{lm_coefs_col}{Character string specifying the column name containing
-linear model coefficients}
+\item{prepped_snsr_cal_df}{Tibble containing prepared sensor calibration data
+chunk from cal_prepare_calibration_windows(), bounded by two calibrations
+and containing raw values from inverse transformation}
+}
+\value{
+For recognized parameters, returns the back-calibrated dataframe with
+the last row removed (boundary calibration point). Contains original data
+plus calibrated values and validation results. Returns NULL for
+unrecognized parameter types.
 }
 \description{
-Converts sensor observations back to raw instrumental values by applying the
-inverse of the linear calibration model. This function reverses the
-slope/offset transformation applied by the sensor to recover the original raw
-measurements, enabling subsequent re-calibration with updated parameters.
+Orchestrates the complete back calibration workflow for sensor data chunks
+bounded by two calibrations. This function determines the appropriate
+calibration pathway based on sensor parameter type and applies the
+corresponding sequence of correction functions. Standard sensors follow a
+three-step process using temporal interpolation between calibrations, while
+pH sensors require specialized processing with unit conversions.
+}
+\details{
+\strong{Standard Sensor Pathway} (Chl-a, FDOM, ORP, Pressure, Specific Conductivity,
+RDO, Turbidity):
+\enumerate{
+\item Calculate temporal weights using cal_wt()
+\item Apply temporal interpolation between calibrations using cal_lin_trans_lm()
+\item Validate results and create final values using cal_check()
+}
+
+\strong{pH Sensor Pathway} (specialized processing):
+\enumerate{
+\item Calculate temporal weights using cal_wt()
+\item Convert pH to millivolt units using cal_lm_pH()
+\item Apply temporal inverse transformation using cal_lin_trans_inv_lm_pH()
+\item Validate results using cal_check()
+}
+
+The function removes the last row from each chunk as it represents the
+boundary calibration point used for interpolation rather than sensor data.
+}
+\examples{
+\dontrun{
+# Process prepared calibration windows
+calibration_windows <- cal_prepare_calibration_windows(joined_data)
+
+# Back calibrate a single chunk
+chunk <- calibration_windows$`2024`$`site1-Temperature`[[1]]
+corrected_chunk <- cal_back_calibrate(chunk)
+}
+
 }
 \seealso{
 \code{\link[=cal_wt]{cal_wt()}}
 
+\code{\link[=cal_inv_lm]{cal_inv_lm()}}
+
 \code{\link[=cal_lin_trans_lm]{cal_lin_trans_lm()}}
+
+\code{\link[=cal_check]{cal_check()}}
+
+\code{\link[=cal_lm_pH]{cal_lm_pH()}}
+
+\code{\link[=cal_lin_trans_inv_lm_pH]{cal_lin_trans_inv_lm_pH()}}
+
+\code{\link[=cal_prepare_calibration_windows]{cal_prepare_calibration_windows()}}
 }

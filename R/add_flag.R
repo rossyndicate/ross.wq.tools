@@ -43,12 +43,12 @@
 #' @seealso [add_unsubmerged_flag()]
 
 add_flag <- function(df, condition_arg, description_arg) {
-  
+
   # Update the flag column based on the provided condition
   # This uses tidyverse programming techniques to evaluate the condition
   # within the context of the dataframe
-  df <- df %>% 
-    ross.wq.tools::add_column_if_not_exists(column_name = "flag") %>%
+  df <- df %>%
+    add_column_if_not_exists(column_name = "flag") %>%
     dplyr::mutate(flag = dplyr::case_when(
     # For rows where the condition is TRUE:
     {{condition_arg}} ~ dplyr::if_else(
@@ -57,9 +57,9 @@ add_flag <- function(df, condition_arg, description_arg) {
       # If there are existing flags, check if this flag already exists
       dplyr::if_else(
         # Only add the flag if it doesn't already exist (prevent duplicates)
-        !grepl(description_arg, flag), 
+        !grepl(description_arg, flag),
         # Append the new flag with a semicolon+newline separator for readability
-        paste(flag, description_arg, sep = ";"), 
+        paste(flag, description_arg, sep = ";"),
         # If flag already exists, keep the original flag unchanged
         flag
       )
@@ -67,6 +67,6 @@ add_flag <- function(df, condition_arg, description_arg) {
     # For rows where condition is FALSE, preserve the existing flag value
     TRUE ~ flag
   ))
-  
+
   return(df)
 }

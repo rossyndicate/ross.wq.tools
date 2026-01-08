@@ -238,6 +238,9 @@ combined_data <- tidy_data %>%
 # generate summary statistics
 summarized_data <- combined_data %>%
   map(~generate_summary_statistics(.))
+
+# TODO: add back calibration step
+# TODO: add drift correction step
 ```
 
 ## Step 6: Single-Parameter Quality Control Flags

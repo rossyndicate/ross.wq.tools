@@ -1,0 +1,865 @@
+---
+title: "calibration_histograms"
+output: html_document
+---
+```{r setup}
+knitr::opts_chunk$set(
+  eval = TRUE,
+  echo = FALSE,
+  warning = FALSE, 
+  message = FALSE
+)
+```
+
+```{r}
+#Installing and loading all packages
+invisible(
+  lapply(c(
+    "tidyverse", # Data manipulation
+    "janitor", # Clean dirty data
+    "lubridate", # Date-Time Manipulation
+    "rvest", # HTML Retrieval and Manipulation
+    "readxl", # Reading excel files
+    "here", # Easy, cross platform file referencing
+    "ggplot2", # Plotting libraries
+    "ggpubr",
+    "plotly",
+    "ggExtra",
+    "devtools", # For downloading GitHub packages
+    "remotes",
+    "yaml",
+    "kableExtra",
+    "patchwork"
+  ),
+  function(x) {
+    if (x %in% installed.packages()) {
+      suppressMessages({
+        library(x, character.only = TRUE)
+      })
+    } else {
+      suppressMessages({
+        install.packages(x)
+        library(x, character.only = TRUE)
+      })
+    }
+  })
+)
+
+load_all()
+```
+
+```{r load-cal-data}
+# Load all the data that we care about in
+load_calibration_data(
+  cal_data_file_path = here("..", "poudre_sonde_network", "data", "calibration_reports", "0_cal_data_munge", "munged_calibration_data.RDS")
+)
+```
+
+```{r}
+calibration_data <- calibration_data %>% 
+  map_dfr(bind_rows, .id = "year") %>% 
+  split(f = .$sensor) %>% 
+  map(unnest) %>% 
+  map(function(df){
+    df %>% 
+      mutate(
+        offset = as.numeric(offset), 
+        slope = as.numeric(slope),
+        offset1 = as.numeric(offset_lead),
+        diff_offset = offset - offset_lead,
+        diff_slope = slope - slope_lead
+      ) %>%
+      filter(year(file_date) >= 2023)
+  }) 
+```
+
+```{r}
+# Format calibration error notes to join them to the data
+cal_error_notes <- read_excel(here("..", "poudre_sonde_network", "data", "field_notes", "calibration_error_log.xlsx"))
+
+cal_error_notes <- cal_error_notes %>% 
+  filter(!str_detect(notes, "TESTING")) %>% 
+  mutate(
+    start_DT = str_remove_all(start_DT, '"'),
+    end_DT = str_remove_all(end_DT, '"'),
+    start_DT = as_datetime(start_DT),
+    end_DT = as_datetime(end_DT),
+    # convert start_DT and end_DT to UTC
+    start_DT = force_tz(start_DT, "America/Denver"),
+    end_DT = force_tz(end_DT, "America/Denver"),
+    start_DT = with_tz(start_DT, "UTC"),
+    end_DT = with_tz(end_DT, "UTC")
+  ) %>% 
+  fix_site_names() 
+
+start_df <- cal_error_notes %>% 
+  select(cal_start_DT = start_DT, site, sensor = parameter)
+
+end_df <- cal_error_notes %>% 
+  select(cal_end_DT = end_DT, site, sensor = parameter)
+```
+
+```{r}
+# load mwater
+mwater_creds <- read_yaml(here("..", "poudre_sonde_network", "creds", "mWaterCreds.yml"))
+
+mwater_notes <- load_mWater(creds = mwater_creds)
+
+field_notes <- grab_mWater_sensor_notes(mwater_notes)
+malfunction_notes <- grab_mWater_malfunction_notes(mwater_notes) 
+```
+
+# Analysis of the raw data
+
+### Histograms of the Mean Sampling Distribution (by sensor)
+
+```{r, fig.width=8, fig.height=12}
+# Get all sensor types except pH
+sensor_types <- names(calibration_data)[!names(calibration_data) %in% c("pH")]
+
+# Calculate means by sensor_serial for each sensor type
+sampling_dist_data <- calibration_data[sensor_types] %>%
+  map_dfr(function(df) {
+    df %>%
+      group_by(sensor, sensor_serial) %>%
+      summarise(
+        slope_mean = mean(slope, na.rm = TRUE),
+        offset_mean = mean(offset, na.rm = TRUE),
+        .groups = 'drop'
+      )
+  }) %>%
+  pivot_longer(cols = c(slope_mean, offset_mean),
+               names_to = "parameter",
+               values_to = "value") %>%
+  mutate(parameter = factor(parameter, 
+                            levels = c("offset_mean", "slope_mean"),
+                            labels = c("Offset", "Slope")))
+
+# Calculate mean and sd for each facet to set xlims
+facet_stats <- sampling_dist_data %>%
+  group_by(sensor, parameter) %>%
+  summarise(
+    mean_val = mean(value, na.rm = TRUE),
+    sd_val = sd(value, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    xmin = mean_val - 3 * sd_val,
+    xmax = mean_val + 3 * sd_val
+  )
+
+# Create individual plots for each sensor
+plot_list <- map(sensor_types, function(sensor_name) {
+  
+  # Filter data for this sensor
+  sensor_data <- sampling_dist_data %>% filter(sensor == sensor_name)
+  
+  # Create a consistent color palette for this specific sensor's serials
+  sensor_serials <- unique(sensor_data$sensor_serial)
+  sensor_color_palette <- scales::hue_pal()(length(sensor_serials))
+  names(sensor_color_palette) <- sensor_serials
+  
+  # Get limits for this sensor
+  sensor_limits <- facet_stats %>% filter(sensor == sensor_name)
+  
+  # Offset plot
+  offset_limits <- sensor_limits %>% filter(parameter == "Offset")
+  p_offset <- sensor_data %>%
+    filter(parameter == "Offset") %>%
+    ggplot(aes(x = value, fill = factor(sensor_serial))) +
+    geom_histogram(bins = 30, alpha = 0.7) +
+    xlim(offset_limits$xmin, offset_limits$xmax) +
+    scale_fill_manual(values = sensor_color_palette) + 
+    labs(title = sensor_name, x = "Offset", y = "Count") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  # Slope plot
+  slope_limits <- sensor_limits %>% filter(parameter == "Slope")
+  p_slope <- sensor_data %>%
+    filter(parameter == "Slope") %>%
+    ggplot(aes(x = value, fill = factor(sensor_serial))) +
+    geom_histogram(bins = 30, alpha = 0.7) +
+    xlim(slope_limits$xmin, slope_limits$xmax) +
+    scale_fill_manual(values = sensor_color_palette) +  
+    labs(x = "Slope", y = "Count") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  # Pair horizontally
+  p_offset | p_slope
+})
+
+# Combine all sensors vertically
+suppressWarnings({
+  final_plot <- reduce(plot_list, `/`)
+  print(final_plot)
+})
+```
+
+The point of this plot is to show, generally, how the calibration data means are related
+between sensors. For each parameter, the color on each offset histogram corresponds to
+the color on each slope histogram. Though there is little to learn from these plots,
+the most important take away for me is that generally the calibration data is 
+bounded by some values. Sometimes the boundary is very tight, other times the 
+data seems to look more normally distributed, and still other times the distribution
+of the calibration coefficients do not look normal. Overall, I think that these
+distributions demonstrate that though there are some parameters whose sensors
+calibration values follow some population mean, other parameters have sensors
+that do not seem to follow a population mean. 
+
+Let's do an ANOVA analysis on each of these  parameters offsets and slopes, and 
+plot these relationships. 
+
+# ANOVA analysis 
+
+Now, lets try to see if any of these parameters' have sensors that all come from
+the same "population". Practically, we know that all of these sensors are different
+from each other and we can't compare a calibration value to some population mean
+to determine if it is an outlier or not, but lets verify that assumption. 
+
+### Offset ANOVA
+
+```{r}
+# See which means are most different from the mean
+offset_anova_plots <- imap(
+  calibration_data[sensor_types],
+  function(df, idx){
+    
+    # Calculate mean and sd for filtering outliers
+    overall_mean <- mean(df$offset, na.rm = TRUE)
+    overall_sd <- sd(df$offset, na.rm = TRUE)
+    
+    # Remove very extreme outliers greater than 3 sds
+    # df <- df %>%
+    #   filter(abs(offset - overall_mean) <= 3 * overall_sd)
+    
+    # Filter to only sensors with at least 2 observations for ANOVA
+    df <- df %>%
+      group_by(sensor_serial) %>%
+      filter(n() >= 2) %>%
+      ungroup()
+    
+    # Do one way ANOVA
+    anova <- oneway.test(offset ~ sensor_serial,
+                         data = df,
+                         var.equal = TRUE
+    )
+    
+    # Keep relevant ANOVA values to put on plot
+    f_stat <- round(anova$statistic, 2)
+    p_value <- round(anova$p.value, 4)
+    
+    # Visualize without outliers
+    p <- ggplot(df, aes(x = reorder(sensor_serial, offset, FUN = median), y = offset)) +
+      geom_boxplot() + 
+      geom_point(alpha = 0.1, position = position_jitter(width = 0.2)) +  # Show actual points
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+      labs(title = paste(idx, "Offset by Sensor Serial Number"),
+           subtitle = paste0("Outliers (±3 SDs) removed | F = ", f_stat, ", p = ", p_value),
+           x = "Sensor Serial Number",
+           y = paste0("Offset (", idx, ")"))
+    
+    # Add marginal histogram on the right (y-axis)
+    p_with_hist <- ggMarginal(p, type = "histogram", margins = "y", 
+                              size = 4,
+                              fill = "grey", 
+                              color = "black")
+    
+    return(p_with_hist)
+  })
+```
+
+```{r}
+# Print all plots
+for (i in offset_anova_plots){
+  plot(i)
+}
+```
+
+### Slope ANOVA
+```{r}
+# See which slopes are most different from the mean
+slope_anova_plots <- imap(
+  calibration_data[sensor_types],
+  function(df, idx){
+    
+    # Calculate mean and sd for filtering outliers
+    overall_mean <- mean(df$slope, na.rm = TRUE)
+    overall_sd <- sd(df$slope, na.rm = TRUE)
+    
+    # Remove very extreme outliers greater than 3 sds
+    # df <- df %>%
+    #   filter(abs(offset - overall_mean) <= 3 * overall_sd)
+    
+    # Filter to only sensors with at least 2 observations for ANOVA
+    df <- df %>%
+      group_by(sensor_serial) %>%
+      filter(n() >= 2) %>%
+      ungroup()
+    
+    # Do one way ANOVA
+    anova <- oneway.test(offset ~ sensor_serial,
+                         data = df,
+                         var.equal = TRUE
+    )
+    
+    # Keep relevant ANOVA values to put on plot
+    f_stat <- round(anova$statistic, 2)
+    p_value <- round(anova$p.value, 4)
+    
+    # Visualize without outliers
+    p <- ggplot(df, aes(x = reorder(sensor_serial, slope, FUN = median), y = slope)) +
+      geom_boxplot() + 
+      geom_point(alpha = 0.1, position = position_jitter(width = 0.2)) +  # Show actual points
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+      labs(title = paste(idx, "Slope by Sensor Serial Number"),
+           subtitle = paste0("Outliers (±3 SDs) removed | F = ", f_stat, ", p = ", p_value),
+           x = "Sensor Serial Number",
+           y = paste0("Slope (", idx, ")"))
+    
+    # Add marginal histogram on the right (y-axis)
+    p_with_hist <- ggMarginal(p, type = "histogram", margins = "y", 
+                              size = 4,
+                              fill = "grey", 
+                              color = "black")
+    
+    return(p_with_hist)
+  })
+```
+
+```{r}
+# Print all plots
+for (i in slope_anova_plots){
+  plot(i)
+}
+```
+
+So, what does this mean practically for us? 
+
+Basically: We cannot compare a new calibration value to the calibration coefficient
+distribution of all the sensors overlapped because the value from that sensors
+new calibration is not a part of the population mean. 
+
+Actually, we could figure this out by doing some post-hoc test to find which
+sensors are not like the rest, but practically speaking there is probably a better 
+method of doing this. 
+
+The final part of this analysis that I want to establish before we move on to 
+making new statistics and comparing those is to compare where the verified
+bad calibrations fall in relation to this data. 
+
+### Paired Plots with Bad Calibration Information (not split by sensor)
+
+What I want to do here is plot those data that are bad calibrations in relation 
+to the rest of the raw data.
+
+```{r}
+# First, bind the bad calibrations to the data.
+calibration_data_w_cal_notes <- map(
+  calibration_data,
+  function(parameter_df) {
+    
+    # Get the sensor name from this dataframe
+    sensor_name <- unique(parameter_df$sensor)[1]
+    
+    # Filter start_df to only this sensor
+    start_df_filtered <- start_df %>% filter(sensor == sensor_name)
+    
+    # Only proceed if there are matching records
+    if (nrow(start_df_filtered) > 0) {
+      
+      # For each bad cal note, find the closest calibration event
+      bad_cal_events <- start_df_filtered %>%
+        # Cross join with all calibration events for this sensor/site
+        inner_join(
+          parameter_df %>% select(site, sensor, file_date),
+          by = c("site", "sensor"),
+          relationship = "many-to-many"
+        ) %>%
+        # Calculate time difference
+        mutate(
+          time_diff = abs(as.numeric(difftime(cal_start_DT, file_date, units = "secs")))
+        ) %>%
+        # Keep only the closest file_date for each cal_start_DT
+        group_by(site, sensor, cal_start_DT) %>%
+        slice_min(time_diff, n = 1, with_ties = FALSE) %>%
+        ungroup() %>%
+        select(site, sensor, file_date, cal_start_DT) %>%
+        mutate(bad_cal_bool = TRUE)
+      
+      # Join back to original data
+      parameter_df <- parameter_df %>%
+        left_join(
+          bad_cal_events,
+          by = c("site", "sensor", "file_date")
+        ) %>%
+        mutate(bad_cal_bool = replace_na(bad_cal_bool, FALSE)) %>% 
+        group_by(sensor_serial) %>% 
+        mutate(sensor_w_bad_cal = ifelse(any(bad_cal_bool), TRUE, FALSE)) %>% 
+        ungroup()
+      
+    } else {
+      # No calibration data for this sensor
+      parameter_df <- parameter_df %>%
+        mutate(
+          cal_start_DT = as.POSIXct(NA),
+          bad_cal_bool = FALSE,
+          sensor_w_bad_cal = FALSE
+        )
+    }
+    
+    return(parameter_df)
+  }
+)
+```
+
+# Histograms of the calibration values
+
+```{r}
+# Make histogram of the sensors faceted, non normalized.
+raw_plot_list <- imap(
+  calibration_data_w_cal_notes[sensor_types],
+  function(df, idx){
+    
+    # Filter and calculate stats for non-normalized data
+    clean_df <- df %>% 
+      filter(
+        !is.infinite(offset),
+        !is.infinite(slope),
+        !is.nan(offset),
+        !is.nan(slope)
+      )
+    
+    # Calculate overall stats
+    offset_mean <- mean(clean_df$offset, na.rm = TRUE)
+    offset_sd <- sd(clean_df$offset, na.rm = TRUE)
+    slope_mean <- mean(clean_df$slope, na.rm = TRUE)
+    slope_sd <- sd(clean_df$slope, na.rm = TRUE)
+    
+    # Normalize within each sensor_serial for stacked plots
+    normal_stack_df <- clean_df %>% 
+      group_by(sensor_serial) %>% 
+      mutate(
+        offset_mean = mean(offset, na.rm = TRUE),
+        offset_sd = sd(offset, na.rm = TRUE),
+        slope_mean = mean(slope, na.rm = TRUE),
+        slope_sd = sd(slope, na.rm = TRUE),
+        normal_offset = (offset - offset_mean)/offset_sd,
+        normal_slope = (slope - slope_mean)/slope_sd
+      ) %>% 
+      ungroup()
+    
+    # Top row - non-normalized plots with ±3 SD limits
+    p_offset <- clean_df %>%
+      ggplot(aes(x = offset, fill = factor(bad_cal_bool), color = factor(bad_cal_bool))) +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(title = idx, x = "Offset", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1,
+        plot.title = element_text(face = "bold", size = 16)
+      ) +
+      xlim(offset_mean - 3*offset_sd, offset_mean + 3*offset_sd)
+    
+    p_slope <- clean_df %>%
+      ggplot(aes(x = slope, fill = factor(bad_cal_bool), color = factor(bad_cal_bool)))  +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(x = "Slope", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1
+      ) +
+      xlim(slope_mean - 3*slope_sd, slope_mean + 3*slope_sd)
+    
+    # Bottom row - normalized stacked plots
+    p_stack_offset <- normal_stack_df %>%
+      ggplot(aes(x = normal_offset, fill = factor(bad_cal_bool), color = factor(bad_cal_bool)))  +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(x = "Normalized Offset", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1
+      ) +
+      xlim(-3, 3)
+    
+    p_stack_slope <- normal_stack_df %>%
+      ggplot(aes(x = normal_slope, fill = factor(bad_cal_bool), color = factor(bad_cal_bool)))  +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(x = "Normalized Slope", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1
+      ) +
+      xlim(-3, 3)
+    
+    # Arrange: top row | bottom row
+    p <- (p_offset | p_slope) / (p_stack_offset | p_stack_slope)
+    
+    return(p)
+  }
+)
+```
+
+```{r}
+for (i in raw_plot_list) {
+  print(i)
+}
+```
+
+```{r}
+# leave pH alone for now
+# plots for pH specifically
+df <- calibration_data_w_cal_notes[["pH"]]
+
+# Split the two calibration points data
+p1_df <- df %>% filter(point == 1)
+p2_df <- df %>% filter(point == 2)
+
+# Point 1 stats
+offset_mean_1 <- mean(p1_df$offset, na.rm = TRUE)
+offset_sd_1 <- sd(p1_df$offset, na.rm = TRUE)
+offset_xlim_1 <- c(offset_mean_1 - (3*offset_sd_1), offset_mean_1 + (3*offset_sd_1))
+
+slope_mean_1 <- mean(p1_df$slope, na.rm = TRUE)
+slope_sd_1 <- sd(p1_df$slope, na.rm = TRUE)
+slope_xlim_1 <- c(slope_mean_1 - (3*slope_sd_1), slope_mean_1 + (3*slope_sd_1))
+
+# Point 2 stats
+offset_mean_2 <- mean(p2_df$offset, na.rm = TRUE)
+offset_sd_2 <- sd(p2_df$offset, na.rm = TRUE)
+offset_xlim_2 <- c(offset_mean_2 - (3*offset_sd_2), offset_mean_2 + (3*offset_sd_2))
+
+slope_mean_2 <- mean(p2_df$slope, na.rm = TRUE)
+slope_sd_2 <- sd(p2_df$slope, na.rm = TRUE)
+slope_xlim_2 <- c(slope_mean_2 - (3*slope_sd_2), slope_mean_2 + (3*slope_sd_2))
+
+# Point 1 offset
+p1_offset <- p1_df %>%
+  ggplot(aes(x = offset, fill = factor(sensor_w_bad_cal), color = factor(sensor_w_bad_cal))) +
+  geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+  scale_fill_manual(values = c("FALSE" = "grey", "TRUE" = "red")) +
+  scale_color_manual(values = c("FALSE" = "darkgrey", "TRUE" = "black")) +
+  labs(title = "Point 1", x = "Offset", y = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none", aspect.ratio = 1,
+        plot.title = element_text(face = "bold", size = 16)) +
+  xlim(offset_xlim_1)
+
+# Point 1 slope
+p1_slope <- p1_df %>%
+  ggplot(aes(x = slope, fill = factor(sensor_w_bad_cal), color = factor(sensor_w_bad_cal))) +
+  geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+  scale_fill_manual(values = c("FALSE" = "grey", "TRUE" = "red")) +
+  scale_color_manual(values = c("FALSE" = "darkgrey", "TRUE" = "black")) +
+  labs(x = "Slope", y = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none", aspect.ratio = 1) +
+  xlim(slope_xlim_1)
+
+# Point 2 offset
+p2_offset <- p2_df %>%
+  ggplot(aes(x = offset, fill = factor(sensor_w_bad_cal), color = factor(sensor_w_bad_cal))) +
+  geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+  scale_fill_manual(values = c("FALSE" = "grey", "TRUE" = "red")) +
+  scale_color_manual(values = c("FALSE" = "darkgrey", "TRUE" = "black")) +
+  labs(title = "Point 2", x = "Offset", y = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none", aspect.ratio = 1,
+        plot.title = element_text(face = "bold", size = 16)) +
+  xlim(offset_xlim_2)
+
+# Point 2 slope
+p2_slope <- p2_df %>%
+  ggplot(aes(x = slope, fill = factor(sensor_w_bad_cal), color = factor(sensor_w_bad_cal))) +
+  geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+  scale_fill_manual(values = c("FALSE" = "grey", "TRUE" = "red")) +
+  scale_color_manual(values = c("FALSE" = "darkgrey", "TRUE" = "black")) +
+  labs(x = "Slope", y = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none", aspect.ratio = 1) +
+  xlim(slope_xlim_2)
+
+# Combine: point1 offset | point1 slope / point2 offset | point2 slope
+p_pH <- (p1_offset | p1_slope) / (p2_offset | p2_slope)
+
+p_pH
+```
+
+# Analysis for the difference between calibrations
+
+### ANOVA
+
+### Histograms
+
+```{r}
+# Make histogram of the difference between sensors
+diff_plot_list <- imap(
+  calibration_data_w_cal_notes[sensor_types],
+  function(df, idx){
+    
+    # Filter and calculate stats for non-normalized data
+    clean_df <- df %>% 
+      filter(
+        !is.infinite(diff_offset),
+        !is.infinite(diff_slope),
+        !is.nan(diff_offset),
+        !is.nan(diff_slope)
+      )
+    
+    # Calculate overall stats for diff values
+    offset_mean <- mean(clean_df$diff_offset, na.rm = TRUE)
+    offset_sd <- sd(clean_df$diff_offset, na.rm = TRUE)
+    slope_mean <- mean(clean_df$diff_slope, na.rm = TRUE)
+    slope_sd <- sd(clean_df$diff_slope, na.rm = TRUE)
+    
+    # Normalize within each sensor_serial for stacked plots (this should go in the normalized section)
+    normal_stack_df <- clean_df %>% 
+      group_by(sensor_serial) %>% 
+      mutate(
+        diff_offset_mean = mean(diff_offset, na.rm = TRUE),
+        diff_offset_sd = sd(diff_offset, na.rm = TRUE),
+        diff_slope_mean = mean(diff_slope, na.rm = TRUE),
+        diff_slope_sd = sd(diff_slope, na.rm = TRUE),
+        normal_diff_offset = (diff_offset - diff_offset_mean)/diff_offset_sd,
+        normal_diff_slope = (diff_slope - diff_slope_mean)/diff_slope_sd
+      ) %>% 
+      ungroup()
+    
+    # Top row - non-normalized diff plots
+    p_offset <- clean_df %>%
+      ggplot(aes(x = diff_offset, fill = factor(bad_cal_bool), color = factor(sensor_w_bad_cal))) +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(title = idx, x = "Δ Offset", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1,
+        plot.title = element_text(face = "bold", size = 16)
+      ) +
+      xlim(offset_mean - 3*offset_sd, offset_mean + 3*offset_sd)
+    
+    p_slope <- clean_df %>%
+      ggplot(aes(x = diff_slope, fill = factor(bad_cal_bool), color = factor(sensor_w_bad_cal))) +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(x = "Δ Slope", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1
+      ) +
+      xlim(slope_mean - 3*slope_sd, slope_mean + 3*slope_sd)
+    
+    # Bottom row - normalized stacked plots
+    p_stack_offset <- normal_stack_df %>%
+      ggplot(aes(x = normal_diff_offset, fill = factor(bad_cal_bool), color = factor(sensor_w_bad_cal))) +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(x = "Normalized Δ Offset", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1
+      ) +
+      xlim(-3, 3)
+    
+    p_stack_slope <- normal_stack_df %>%
+      ggplot(aes(x = normal_diff_slope, fill = factor(bad_cal_bool), color = factor(sensor_w_bad_cal))) +
+      scale_fill_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
+      scale_color_manual(values = c("TRUE" = "black", "FALSE" = "darkgrey")) +
+      geom_histogram(bins = 50, alpha = 0.7, linewidth = 0.3) +
+      labs(x = "Normalized Δ Slope", y = NULL) +
+      theme_minimal(base_size = 14) +
+      theme(
+        legend.position = "none",
+        aspect.ratio = 1
+      ) +
+      xlim(-3, 3)
+    
+    # Arrange: top row | bottom row
+    p <- (p_offset | p_slope) / (p_stack_offset | p_stack_slope)
+    
+    return(p)
+  }
+)
+```
+
+```{r}
+for (i in diff_plot_list) {
+  print(i)
+}
+```
+
+
+
+```{r}
+# # anova fxn
+# anova_plot <- function(df, idx){
+#     # Calculate mean and sd for filtering outliers
+#     overall_mean <- mean(df$slope, na.rm = TRUE)
+#     overall_sd <- sd(df$slope, na.rm = TRUE)
+#     
+#     # Remove very extreme outliers greater than 3 sds
+#     # df <- df %>%
+#     #   filter(abs(offset - overall_mean) <= 3 * overall_sd)
+#     
+#     # Filter to only sensors with at least 2 observations for ANOVA
+#     df <- df %>%
+#       group_by(sensor_serial) %>%
+#       filter(n() >= 2) %>%
+#       ungroup()
+#     
+#     # Do one way ANOVA
+#     anova <- oneway.test(offset ~ sensor_serial,
+#                          data = df,
+#                          var.equal = TRUE
+#     )
+#     
+#     # Keep relevant ANOVA values to put on plot
+#     f_stat <- round(anova$statistic, 2)
+#     p_value <- round(anova$p.value, 4)
+#     
+#     # Visualize without outliers
+#     p <- ggplot(df, aes(x = reorder(sensor_serial, slope, FUN = median), y = slope)) +
+#       geom_boxplot() + 
+#       geom_point(alpha = 0.1, position = position_jitter(width = 0.2)) +  # Show actual points
+#       theme_bw() +
+#       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+#       labs(title = paste(idx, "Slope by Sensor Serial Number"),
+#            subtitle = paste0("Outliers (±3 SDs) removed | F = ", f_stat, ", p = ", p_value),
+#            x = "Sensor Serial Number",
+#            y = paste0("Slope (", idx, ")"))
+#     
+#     # Add marginal histogram on the right (y-axis)
+#     p_with_hist <- ggMarginal(p, type = "histogram", margins = "y", 
+#                               size = 4,
+#                               fill = "grey", 
+#                               color = "black")
+#     
+#     return(p_with_hist)
+#   })
+```
+
+
+
+
+# Tables
+
+
+```{r}
+# Get all sensor types except pH
+sensor_types <- names(calibration_data)[!names(calibration_data) %in% c("pH")]
+
+# Create summary statistics for offset (all non-pH sensors)
+offset_summary <- calibration_data[sensor_types] %>%
+  map_dfr(function(df) {
+    df %>%
+      group_by(sensor) %>%
+      summarise(
+        cal_count = n(),
+        mean = mean(offset, na.rm = TRUE),
+        sd = sd(offset, na.rm = TRUE),
+        min = min(offset, na.rm = TRUE),
+        q25 = quantile(offset, 0.25, na.rm = TRUE),
+        median = median(offset, na.rm = TRUE),
+        q75 = quantile(offset, 0.75, na.rm = TRUE),
+        max = max(offset, na.rm = TRUE),
+        n_beyond_3sd = sum(abs(offset - mean(offset, na.rm = TRUE)) > 3 * sd(offset, na.rm = TRUE), na.rm = TRUE),
+        .groups = 'drop'
+      )
+  })
+
+# Create summary statistics for slope (all non-pH sensors)
+slope_summary <- calibration_data[sensor_types] %>%
+  map_dfr(function(df) {
+    df %>%
+      group_by(sensor) %>%
+      summarise(
+        cal_count = n(),
+        mean = mean(slope, na.rm = TRUE),
+        sd = sd(slope, na.rm = TRUE),
+        min = min(slope, na.rm = TRUE),
+        q25 = quantile(slope, 0.25, na.rm = TRUE),
+        median = median(slope, na.rm = TRUE),
+        q75 = quantile(slope, 0.75, na.rm = TRUE),
+        max = max(slope, na.rm = TRUE),
+        n_beyond_3sd = sum(abs(slope - mean(slope, na.rm = TRUE)) > 3 * sd(slope, na.rm = TRUE), na.rm = TRUE),
+        .groups = 'drop'
+      )
+  })
+
+# pH offset summary (separate because of two-point calibration)
+pH_offset_summary <- calibration_data$pH %>%
+  group_by(point) %>%
+  summarise(
+    cal_count = n(),
+    mean = mean(offset, na.rm = TRUE),
+    sd = sd(offset, na.rm = TRUE),
+    min = min(offset, na.rm = TRUE),
+    q25 = quantile(offset, 0.25, na.rm = TRUE),
+    median = median(offset, na.rm = TRUE),
+    q75 = quantile(offset, 0.75, na.rm = TRUE),
+    max = max(offset, na.rm = TRUE),
+    n_beyond_3sd = sum(abs(offset - mean(offset, na.rm = TRUE)) > 3 * sd(offset, na.rm = TRUE), na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(sensor = paste("pH - Point", point)) %>%
+  select(sensor, everything(), -point)
+
+# pH slope summary
+pH_slope_summary <- calibration_data$pH %>%
+  group_by(point) %>%
+  summarise(
+    cal_count = n(),
+    mean = mean(slope, na.rm = TRUE),
+    sd = sd(slope, na.rm = TRUE),
+    min = min(slope, na.rm = TRUE),
+    q25 = quantile(slope, 0.25, na.rm = TRUE),
+    median = median(slope, na.rm = TRUE),
+    q75 = quantile(slope, 0.75, na.rm = TRUE),
+    max = max(slope, na.rm = TRUE),
+    n_beyond_3sd = sum(abs(slope - mean(slope, na.rm = TRUE)) > 3 * sd(slope, na.rm = TRUE), na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(sensor = paste("pH - Point", point)) %>%
+  select(sensor, everything(), -point)
+```
+
+```{r}
+# kable table 1
+kable(offset_summary)
+```
+
+```{r}
+# kable table 2
+kable(slope_summary)
+```
+
+```{r}
+# kable table 3
+kable(pH_offset_summary)
+```
+
+```{r}
+# kable table 4
+kable(pH_slope_summary)
+```

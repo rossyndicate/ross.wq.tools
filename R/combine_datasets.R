@@ -36,45 +36,45 @@
 #' @seealso [generate_summary_statistics()]
 
 combine_datasets <- function(incoming_data_list, historical_data_list) {
-  
+
   # Handle cases where one or both data sources are unavailable: ===============
-  
+
   ## Handle case 0: Both inputs are empty or null.
   if ((is.null(historical_data_list) || length(historical_data_list) == 0) &
       (is.null(incoming_data_list) || length(incoming_data_list) == 0)) {
-    stop("No data provided to `combine_datasets()`.") 
+    stop("No data provided to `combine_datasets()`.")
   }
-  
+
   ## Handle case 1: Only historical data, no incoming data
   ## This pipeline should never reach this step. The pipeline should stop if there
   ## is no new incoming data.
   if (is.null(incoming_data_list) || length(incoming_data_list) == 0) {
     stop("No new incoming data list provided to `combine_datasets()`.")
   }
-  
+
   ## Handle case 2: Only incoming data, no historical data
-  ## This can happen after a system reset 
+  ## This can happen after a system reset
   if (is.null(historical_data_list) || length(historical_data_list) == 0) {
     warning("No historical data list provided to `combine_datasets()`.")
-    
+
     # Mark all incoming data as non-historical and return
     new_data <- purrr::map(incoming_data_list,
                            function(data){
                              data %>%
                                dplyr::mutate(historical = FALSE,
-                                             flag = as.character(flag)) 
+                                             flag = as.character(flag))
                            })
     return(new_data)
   }
-  
+
   # Handle the standard case: Both historical and incoming data exist ==========
-  
+
   # Find site-parameter combinations that exist in both datasets
   matching_indexes <- dplyr::intersect(names(incoming_data_list), names(historical_data_list))
-  
+
   # Combine historical and incoming data for each matching site-parameter combination
   combined_hist_inc_data <- purrr::map(matching_indexes, function(index) {
-    
+
     # Extract the most recent 24 hours of historical data for each site-parameter combo
     # This creates an overlap period that helps identify sensor drift
     hist_data <- historical_data_list[[index]] %>%
@@ -87,47 +87,47 @@ combine_datasets <- function(incoming_data_list, historical_data_list) {
       # Remove the sonde_moved column so it can be recalculated
       # based on combined historical and new data
       dplyr::select(-sonde_moved)
-    
+
     # Prepare the incoming data
-    inc_data <- incoming_data_list[[index]] %>% 
+    inc_data <- incoming_data_list[[index]] %>%
       dplyr::mutate(historical = FALSE,
                     flag = as.character(flag))
-    
+
     # Find unique timestamps in incoming data
     unique_inc <- inc_data %>%
       dplyr::anti_join(hist_data, by = "DT_round")
-    
+
     # Combine historical with unique incoming data
-    dplyr::bind_rows(hist_data, unique_inc) %>% 
+    dplyr::bind_rows(hist_data, unique_inc) %>%
       # Ensure chronological order
       dplyr::arrange(DT_round)
   }) %>%
     # Preserve the site-parameter naming convention in the result
     purrr::set_names(matching_indexes)
-  
+
   # Preserve data that only exists in the incoming data
   ## This can happen after a system reset or when monitoring a new site
-  
+
   # Find site-parameter combinations that only exist in new data
   new_only_indexes <- setdiff(names(incoming_data_list), names(historical_data_list))
-  
+
   # Add these new combinations to the result
   if(length(new_only_indexes) > 0) {
     # Process new site-parameter combinations
     new_only_data <- purrr::map(new_only_indexes,
                                 function(index){
-                                  incoming_data_list[[index]] %>% 
+                                  incoming_data_list[[index]] %>%
                                     dplyr::mutate(historical = FALSE,
-                                                  flag = as.character(flag)) 
-                                }) %>% 
+                                                  flag = as.character(flag))
+                                }) %>%
       purrr::set_names(new_only_indexes)
-    
+
     # Add these combinations to the results
     combined_hist_inc_data <- c(combined_hist_inc_data, new_only_data)
-    print(paste0("Added new site-parameter combinations: ", 
+    print(paste0("Added new site-parameter combinations: ",
                  paste(new_only_indexes, collapse = ", ")))
   }
-  
+
   # Return the combined dataset (historical data is not needed in output if not in incoming data)
   return(combined_hist_inc_data)
 }

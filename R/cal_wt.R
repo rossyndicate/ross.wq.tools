@@ -28,7 +28,7 @@ cal_wt <- function(df, dt_col, wt_col = "wt"){
 
   # Calculate temporal weight factors (0 to 1) for linear interpolation
   df <- df %>%
-    mutate(!!wt_col := as.numeric(difftime(.data[[dt_col]], first_dt, units = "mins"))/tot_time)
+    dplyr::mutate(!!wt_col := as.numeric(difftime(.data[[dt_col]], first_dt, units = "mins"))/tot_time)
 
   return(df)
 }

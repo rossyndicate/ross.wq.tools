@@ -5,17 +5,12 @@
 \title{Extract Calibration Data from HTML Markup}
 \usage{
 cal_extract_markup_data(
-  field_cal_dir = here::here("data", "calibration_reports"),
-  benchtop_cal_dir = here::here("data", "calibration_reports", "benchtop_calibrations")
+  field_cal_dir = here::here("data", "raw", "sensor", "calibration_reports")
 )
 }
 \arguments{
 \item{field_cal_dir}{Character string specifying the directory path containing
 field calibration HTML files (default: data/calibration_reports/)}
-
-\item{benchtop_cal_dir}{Character string specifying the directory path
-containing benchtop calibration HTML files (default:
-data/calibration_reports/benchtop_calibrations/)}
 }
 \description{
 Extracts calibration coefficients and drift correction information from HTML
@@ -28,5 +23,5 @@ priority over benchtop calibrations when both are available.
 \seealso{
 \code{\link[=load_calibration_data]{load_calibration_data()}}
 
-\code{\link[=join_sensor_calibration_data]{join_sensor_calibration_data()}}
+\code{\link[=cal_join_sensor_calibration_data]{cal_join_sensor_calibration_data()}}
 }

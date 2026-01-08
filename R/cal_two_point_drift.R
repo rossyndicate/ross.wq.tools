@@ -32,12 +32,12 @@ cal_two_point_drift <- function(df, lm_trans_col, drift_corr_col, wt_col){
   # Handle missing calibration data
   if (!is.data.frame(drift_back_calibration) || nrow(drift_back_calibration) == 0) {
     df <- df %>%
-      mutate(!!transformed_col := NA_integer_)
+      dplyr::mutate(!!transformed_col := NA_integer_)
     return(df)
   }
 
   # Extract expected values for calibration standards
-  s_e <- drift_back_calibration %>% pull(post_measurement)
+  s_e <- drift_back_calibration %>% dplyr::pull(post_measurement)
   a_e <- as.numeric(s_e[1]) # Low standard expected
   b_e <- as.numeric(s_e[2]) # High standard expected
 
@@ -45,7 +45,7 @@ cal_two_point_drift <- function(df, lm_trans_col, drift_corr_col, wt_col){
   delta_e <- b_e - a_e
 
   # Extract observed values for calibration standards
-  s_o <- drift_back_calibration %>% pull(pre_measurement)
+  s_o <- drift_back_calibration %>% dplyr::pull(pre_measurement)
   a_o <- as.numeric(s_o[1])  # Low standard observed
   b_o <- as.numeric(s_o[2])  # High standard observed
 
@@ -55,14 +55,14 @@ cal_two_point_drift <- function(df, lm_trans_col, drift_corr_col, wt_col){
 
   # Apply temporally-weighted two-point drift correction
   df <- df %>%
-    mutate(
+    dplyr::mutate(
       # Calculate temporally-adjusted standard values
       a_t = a_e - (.data[[wt_col]] * delta_a),  # Weighted low standard
       b_t = b_e - (.data[[wt_col]] * delta_b),  # Weighted high standard
       # Apply linear interpolation drift correction: C_t = ((m_t-a_t)/(b_t-a_t))(b_e-a_e)+a_e
       !!transformed_col := (((.data[[lm_trans_col]] - a_t) / (b_t - a_t)) * delta_e) + a_e
     ) %>%
-    select(-c(a_t, b_t))  # Remove intermediate calculation columns
+    dplyr::select(-c(a_t, b_t))  # Remove intermediate calculation columns
 
   return(df)
 }

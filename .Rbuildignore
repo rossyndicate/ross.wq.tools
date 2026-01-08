@@ -1,3 +1,5 @@
 ^ross\.wq\.tools\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^sandbox*$
+^data*$

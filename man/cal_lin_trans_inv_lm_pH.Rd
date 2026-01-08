@@ -6,26 +6,39 @@
 \usage{
 cal_lin_trans_inv_lm_pH(
   df = .,
-  obs_col = "mean",
-  mv_col = "mean_mV_f",
-  lm_coefs_col = "calibration_coefs",
-  wt_col = "wt"
+  mv_col,
+  slope_from_col,
+  offset_from_col,
+  slope_to_col,
+  offset_to_col,
+  wt_col
 )
 }
 \arguments{
 \item{df}{Tibble containing sensor data bounded by two calibrations}
 
-\item{obs_col}{Character string specifying the column name containing
-original pH observations for range selection logic (default: "mean")}
-
 \item{mv_col}{Character string specifying the column name containing
-millivolt values from pH linear model transformation (default: "mean_mV_f")}
+millivolt values from pH linear model transformation}
 
-\item{lm_coefs_col}{Character string specifying the column name containing
-linear model coefficients (default: "calibration_coefs")}
+\item{slope_from_col}{Character string specifying the column name containing
+slope coefficients from the first (earliest) calibration}
+
+\item{offset_from_col}{Character string specifying the column name containing
+offset coefficients from the first (earliest) calibration}
+
+\item{slope_to_col}{Character string specifying the column name containing
+slope coefficients from the second (latest) calibration}
+
+\item{offset_to_col}{Character string specifying the column name containing
+offset coefficients from the second (latest) calibration}
 
 \item{wt_col}{Character string specifying the column name containing temporal
-weight parameters (default: "wt")}
+weight parameters}
+}
+\value{
+The input dataframe with an additional column containing pH values
+converted from millivolts. Column name follows the pattern:
+"{mv_col_prefix}_lm_trans" (e.g., "mean_lm_trans" from "mean_raw").
 }
 \description{
 Converts millivolt values back to pH units using temporally-weighted inverse
@@ -34,6 +47,11 @@ applies two-segment inverse linear models with temporal interpolation to
 account for sensor drift across the calibration window. Uses pH value
 thresholds to select between low-range and high-range inverse transformations
 based on the original pH observations.
+}
+\details{
+The inverse temporal interpolation formula is:
+x = (y - (b₁ - wt(b₁ - b₂))) / (m₁ - wt(m₁ - m₂))
+where wt represents the temporal weight between 0 and 1.
 }
 \seealso{
 \code{\link[=cal_wt]{cal_wt()}}

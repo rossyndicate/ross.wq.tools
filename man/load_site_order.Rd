@@ -46,10 +46,10 @@ mtn_campus,mtn_campus
 Expected Outputs:
 site_order_list <- load_site_order_yaml("site_orders.yaml")
 site_order_list$clp
-#> \link{1} "joei", "cbri", "chd", "pfal", "pbr", "pman", "pbd", "bellvue", "salyer", "udall", "riverbend", "cottonwood", "elc", "archery", "riverbluffs"
+#> [1] "joei", "cbri", "chd", "pfal", "pbr", "pman", "pbd", "bellvue", "salyer", "udall", "riverbend", "cottonwood", "elc", "archery", "riverbluffs"
 
 site_order_list$sfm
-#> \link{1} "sfm"
+#> [1] "sfm"
 }
 
 \seealso{

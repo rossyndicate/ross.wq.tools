@@ -25,5 +25,5 @@ organization structure.
 \seealso{
 \code{\link[=load_calibration_data]{load_calibration_data()}}
 
-\code{\link[=prepare_sensor_calibration_data]{prepare_sensor_calibration_data()}}
+\code{\link[=cal_prepare_calibration_windows]{cal_prepare_calibration_windows()}}
 }

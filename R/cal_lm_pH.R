@@ -19,42 +19,17 @@
 #' @seealso [cal_lin_trans_inv_lm_pH()]
 #' @seealso [cal_three_point_drift_pH()]
 
-cal_lm_pH <- function(df, obs_col, lm_coefs_col) {
+cal_lm_pH <- function(df, obs_col, slope_col, offset_col) {
 
   # Create output column names for pH to mV conversion
-  mv_f <- paste0(obs_col, "_mV_f")
+  mv_col <- paste0(obs_col, "_raw")
 
-  # Extract calibration coefficients from first calibration
-  calibration_1 <- df[[lm_coefs_col]][[1]]
-
-  # Handle missing calibration data
-  if (!is.data.frame(calibration_1) || nrow(calibration_1) == 0) {
-    df <- df %>%
-      mutate(!!mv_f := NA_integer_)
-    return(df)
-  }
-
-  # Extract slope and offset parameters for two-segment calibration
-  slopes <- calibration_1 %>% pull(slope)
-  offsets <- calibration_1 %>% pull(offset)
-
-  slope_1 <- as.numeric(slopes[1])   # Low pH range slope (mV/pH)
-  offset_1 <- as.numeric(offsets[1]) # Low pH range offset (mV)
-
-  slope_2 <- as.numeric(slopes[2])   # High pH range slope (mV/pH)
-  offset_2 <- as.numeric(offsets[2]) # High pH range offset (mV)
-
-  # Convert pH to millivolts using two-segment linear models
+  # Convert pH to millivolts
   df <- df %>%
-    mutate(
+    dplyr::mutate(
       # Apply linear transformation for low pH range: y = mx + b
-      mv_1 = (slope_1 * .data[[obs_col]]) + offset_1,
-      # Apply linear transformation for high pH range: y = mx + b
-      mv_2 = (slope_2 * .data[[obs_col]]) + offset_2,
-      # Select appropriate mV value based on pH threshold (neutral = 7)
-      !!mv_f := ifelse(.data[[obs_col]] >= 7, mv_2, mv_1)
-    ) %>%
-    select(-c(mv_1, mv_2))  # Remove intermediate calculation columns
+      !!mv_col := (.data[[slope_col]] * .data[[obs_col]]) + .data[[offset_col]]
+    )
 
   return(df)
 }

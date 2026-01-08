@@ -1,10 +1,10 @@
 #' Fix and standardize site names in a dataframe
 #'
-#' This function standardizes site names by converting them to lowercase and 
+#' This function standardizes site names by converting them to lowercase and
 #' replacing specific site names with their standardized equivalents. It handles
 #' case-insensitive matching and performs the following replacements:
 #' - "tamasag" -> "bellvue"
-#' - "legacy" -> "salyer" 
+#' - "legacy" -> "salyer"
 #' - "lincoln" -> "udall"
 #' - "timberline" -> "riverbend"
 #' - "prospect" -> "cottonwood"
@@ -22,7 +22,7 @@
 #' # Example usage with default column name
 #' sample_df <- data.frame(site = c("Tamasag", "LEGACY", "River Bluffs"))
 #' fixed_df <- fix_site_names(sample_df)
-#' 
+#'
 #' # Example usage with custom column name
 #' sample_df2 <- data.frame(location = c("Tamasag", "LEGACY", "River Bluffs"))
 #' fixed_df2 <- fix_site_names(sample_df2, site_col = "location")

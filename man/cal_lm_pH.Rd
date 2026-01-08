@@ -4,7 +4,7 @@
 \alias{cal_lm_pH}
 \title{pH Linear Model Transformation}
 \usage{
-cal_lm_pH(df, obs_col, lm_coefs_col)
+cal_lm_pH(df, obs_col, slope_col, offset_col)
 }
 \arguments{
 \item{df}{Tibble containing sensor data bounded by two calibrations}

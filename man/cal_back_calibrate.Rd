@@ -17,6 +17,13 @@ calibration pathway based on sensor parameter type and applies the
 corresponding sequence of correction functions. Standard sensors follow a
 five-step process, turbidity uses two-point drift correction, and pH sensors
 require specialized three-point processing with unit conversions.
+pH sensor calibration pathway (specialized three-point processing)
+pH calibration requires special handling due to:
+\itemize{
+\item Slopes in mV/pH units and offsets in mV units (not direct pH units)
+\item Three-point calibration creating two slope transitions
+\item Need for unit conversion from pH to mV for back-calibration
+}
 }
 \seealso{
 \code{\link[=cal_wt]{cal_wt()}}

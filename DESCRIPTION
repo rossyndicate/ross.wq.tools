@@ -11,8 +11,11 @@ Authors@R: c(
            role = "aut")
   )
 Description: Tools for processing, analyzing, and flagging water quality data 
-    from the Fort Collins Watershed monitoring network. This package provides 
+    from the Cache la Poudre Watershed monitoring network. This package provides 
     functions for data validation, quality control flagging, and summary statistics.
+    This network currently deploys In-Situ Inc AquaTroll multiparameter sondes and 
+    thus this package is optimized to work with sensor data generated from these 
+    instruments and uploaded to In-Situ Inc's cloud service, Hydro Vu. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -40,7 +43,8 @@ Imports:
     readxl,
     tibble,
     tidyr,
-    xml2
+    xml2,
+    groupdata2
 Suggests: 
     knitr,
     rmarkdown

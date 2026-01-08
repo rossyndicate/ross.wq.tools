@@ -22,6 +22,11 @@ prioritizes linearly transformed values over drift-corrected values and
 falls back to original observations when calibration fails. Creates a
 calibration success flag for quality control purposes.
 }
+\details{
+Note that since the most recent update this function does not break, though
+it might not track correctly when data from a bad calibration that cannot be
+changed remains unaltered in the final checking column \code{lm_trans_col}.
+}
 \seealso{
 \code{\link[=cal_lin_trans_lm]{cal_lin_trans_lm()}}
 

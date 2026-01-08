@@ -15,8 +15,8 @@
 #' 3. "sv window" - A buffer period around site visits (15 minutes before and
 #'    60 minutes after) when data may be affected by field activities
 #'
-#' These flags identify periods when readings may not reflect natural environmental 
-#' conditions due to human interference. The function requires that field notes 
+#' These flags identify periods when readings may not reflect natural environmental
+#' conditions due to human interference. The function requires that field notes
 #' have already been joined to the water quality data.
 #'
 #' @param df A dataframe containing water quality data with field notes already
@@ -36,16 +36,16 @@
 #' @seealso [add_flag()]
 
 add_field_flag <- function(df) {
-  
+
   # First, flag periods when the sonde was physically removed from the water
   # This identifies data that doesn't represent in-situ water conditions
   df <- df %>%
     add_flag(sonde_employed == 1, "sonde not employed") %>%
-    
+
     # Next, flag the exact timestamps when technicians were at the site
     # These represent direct human interference with the equipment
     add_flag(as.character(last_site_visit) == as.character(DT_round), "site visit")
-  
+
   # Add flags for the post-visit window (60 minutes after a site visit)
   # This accounts for the recovery period after equipment handling
   # For 15-minute data, this means checking the next 4 timestamps after a site visit
@@ -55,13 +55,13 @@ add_field_flag <- function(df) {
       # If found, mark this timestamp as within the recovery window
       add_flag(lag(stringr::str_detect(flag, "site visit"), n = i), "sv window")
   }
-  
+
   # Add flags for the pre-visit window (15 minutes before a site visit)
   # This accounts for potential disturbance before logging the visit time
   df <- df %>%
     # Look ahead 1 step to see if there will be a site visit flag
     # If found, mark this timestamp as within the preparation window
     add_flag(lead(stringr::str_detect(flag, "site visit"), n = 1), "sv window")
-  
+
   return(df)
 }

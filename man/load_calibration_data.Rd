@@ -5,7 +5,7 @@
 \title{Load Calibration Data}
 \usage{
 load_calibration_data(
-  cal_data_file_path = here("data", "calibration_reports", "0_cal_data_munge",
+  cal_data_file_path = here::here("data", "collated", "sensor", "cal_reports",
     "munged_calibration_data.RDS"),
   update = FALSE,
   ...
@@ -32,5 +32,5 @@ site-parameter combinations for use throughout the calibration workflow.
 \seealso{
 \code{\link[=cal_extract_markup_data]{cal_extract_markup_data()}}
 
-\code{\link[=join_sensor_calibration_data]{join_sensor_calibration_data()}}
+\code{\link[=cal_join_sensor_calibration_data]{cal_join_sensor_calibration_data()}}
 }

@@ -2,9 +2,9 @@
 #' @export
 #'
 #' @description
-#' Identifies and corrects overflagging by comparing data patterns across upstream 
-#' and downstream monitoring sites. When quality flags at a site coincide with similar 
-#' patterns at neighboring sites, these flags are often indicating real water quality 
+#' Identifies and corrects overflagging by comparing data patterns across upstream
+#' and downstream monitoring sites. When quality flags at a site coincide with similar
+#' patterns at neighboring sites, these flags are often indicating real water quality
 #' events rather than sensor malfunctions and can be removed.
 #'
 #' Different site configurations are handled based on the monitoring network specified.
@@ -13,15 +13,15 @@
 #'
 #' @param df A site-parameter dataframe that has undergone initial flagging. Must include:
 #' - `site`: Standardized site name
-#' - `parameter`: The measurement type 
+#' - `parameter`: The measurement type
 #' - `DT_round`: Timestamp for measurements
 #' - `flag`: Existing quality flags
-#' 
-#' @param intrasensor_flags_arg A list of data frames that have gone through the 
-#' intra-sensor flagging functions which are indexed by their corresponding 
+#'
+#' @param intrasensor_flags_arg A list of data frames that have gone through the
+#' intra-sensor flagging functions which are indexed by their corresponding
 #' site-parameter combination.
-#' @param site_order_arg A list defining the order of sites in the network. This requires 
-#' a user create a yaml or csv file with formatting consistent 
+#' @param site_order_arg A list defining the order of sites in the network. This requires
+#' a user create a yaml or csv file with formatting consistent
 #' with the example in `load_site_order()` and to create a site_order_list object using `load_site_order()`
 #'
 #' @return A dataframe with the same structure as the input, plus an `auto_flag` column
@@ -32,11 +32,11 @@
 #' @seealso [load_site_order()]
 
 network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_order_arg = site_order_list){
-  
+
   # Extract site and parameter name from dataframe
   site_name <- unique(na.omit(df$site))
   parameter_name <- unique(na.omit(df$parameter))
-  
+
   #Check if site_order_arg exists and is a list
   if(missing(site_order_arg) || !is.list(site_order_arg)){
     stop("site_order_arg is missing or not a list. Please provide a valid site order list.")
@@ -56,23 +56,23 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
   } else {
     sites_order <- sites_order[[1]]
   }
-  
+
   # If no site order is found for the site (ie only one site in network list), return original dataframe with message
   if(length(sites_order) ==  1){
     message(paste0("Skipping network check (no upstream/downstream relationship) for: ", site_name))
     return(df)
   }
-  
+
   # Find the index of current site in ordered list
   site_index <- which(sites_order == sites_order[grep(site_name, sites_order, ignore.case = TRUE)])
-  
+
   # Create site-parameter identifier
   site_param <- paste0(site_name, "-", parameter_name)
-  
+
   # Initialize empty dataframes for upstream/downstream sites
   upstr_site_df <- tibble::tibble(DT_round = NA) # Upstream sites
   dnstr_site_df <- tibble::tibble(DT_round = NA) # Downstream sites
-  
+
   # Try to get upstream site data
   tryCatch({
     # Skip trying to find upstream sites for first site (ie top of monitoring network).
@@ -85,8 +85,8 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
   },
   error = function(err) {
     message(paste0("No UPSTREAM data found for ", site_param, ". Expected at site '", previous_site, "'."))
-  }) 
-  
+  })
+
   # Try to get downstream site data
   tryCatch({
     # Skip trying to find downstream sites for last site (ie bottom of monitoring network).
@@ -100,41 +100,41 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
   error = function(err) {
     message(paste0("No DOWNSTREAM data found for ", site_param, ". Expected at site '", next_site, "'."))
   })
-  
+
   # Join current site data with upstream and downstream data
   up_down_join <- df %>%
     dplyr::left_join(upstr_site_df, by = "DT_round") %>%
     dplyr::left_join(dnstr_site_df, by = "DT_round")
-  
+
   # <<< Establish helper functions >>> ----
-  
+
   # Function to check if any flags exist in a time window
   check_2_hour_window_fail <- function(x) {
     sum(x) >= 1
   }
-  
+
   # <<< Establish helper objects >>> ----
-  
+
   # String object that is used to ignore flags that we do not want to remove.
   ignore_flags <- "drift|DO interference|repeat|sonde not employed|frozen|
   unsubmerged|missing data|site visit|sv window|sensor malfunction|burial|
   sensor biofouling|improper level cal|sonde moved"
-  
+
   # Numeric object that determines the width for the rolling window check (2 hours)
-  width_fun = 17 
-  
+  width_fun = 17
+
   # <<< Process flags based on upstream/downstream patterns >>> ----
   final_df <- up_down_join %>%
     # Add placeholder columns if joinging didn't provide them
-    add_column_if_not_exists("flag_down") %>% 
-    add_column_if_not_exists("flag_up") %>% 
-    add_column_if_not_exists("site_down") %>% 
-    add_column_if_not_exists("site_up") %>% 
+    add_column_if_not_exists("flag_down") %>%
+    add_column_if_not_exists("flag_up") %>%
+    add_column_if_not_exists("site_down") %>%
+    add_column_if_not_exists("site_up") %>%
     # Create binary indicator for upstream/downstream flags
     ## 0 = no relevant flags upstream/downstream
     ## 1 = at least one site has relevant flags
     dplyr::mutate(flag_binary = dplyr::if_else(
-      (is.na(flag_up) | grepl(ignore_flags, flag_up)) & 
+      (is.na(flag_up) | grepl(ignore_flags, flag_up)) &
         (is.na(flag_down) | grepl(ignore_flags, flag_down)), 0, 1
     )) %>%
     # Check for flags in 4-hour window (+/-2 hours around each point, 17 observations at 15-min intervals)
@@ -142,9 +142,9 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
     add_column_if_not_exists(column_name = "auto_flag") %>%
     # If flag exists but is also present up/downstream, it likely represents a real event
     # In that case, remove the flag (set auto_flag to NA)
-    dplyr::mutate(auto_flag = ifelse(!is.na(flag) & !grepl(ignore_flags, flag) & 
+    dplyr::mutate(auto_flag = ifelse(!is.na(flag) & !grepl(ignore_flags, flag) &
                                        (overlapping_flag == TRUE & !is.na(overlapping_flag)), NA, flag)) %>%
     dplyr::select(-c(flag_up, flag_down, site_up, site_down, flag_binary, overlapping_flag))
-  
+
   return(final_df)
 }

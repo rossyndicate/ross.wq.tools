@@ -16,7 +16,7 @@
 #'   load_calibration_data()
 #'
 #' @seealso [load_calibration_data()]
-#' @seealso [prepare_sensor_calibration_data()]
+#' @seealso [cal_prepare_calibration_windows()]
 
 # TODO: Fix the join so that it joins on site visits
 cal_join_sensor_calibration_data <- function(sensor_data_list, calibration_data_list) {
@@ -41,14 +41,14 @@ cal_join_sensor_calibration_data <- function(sensor_data_list, calibration_data_
 
           # Extract data for current site-parameter combination
           sensor_data <- year_sensor_data[[site_param]]
-          calibration_data <- select(year_calibration_data[[site_param]], -sensor)
+          calibration_data <- dplyr::select(year_calibration_data[[site_param]], -sensor, units_cal = units)
 
-          # Join calibration data to sensor data using temporal proximity matching
+          # Join calibration data to sensor data using temporal proximity matching.
           # For each sensor timestamp, find the most recent calibration that
           # precedes or equals the sensor measurement time
           by <- join_by(site, closest(DT_round >= file_date))
-          joined_sensor_calibration_data <- left_join(sensor_data, calibration_data, by) %>%
-            arrange(DT_round)
+          joined_sensor_calibration_data <- dplyr::left_join(sensor_data, calibration_data, by) %>%
+            dplyr::arrange(DT_round)
 
           return(joined_sensor_calibration_data)
         }) %>%

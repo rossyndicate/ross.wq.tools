@@ -24,7 +24,7 @@ cal_div_table_check <- function(table_list, table_name, col_names) {
 
   # Check if column names are in the table ----
   table <- table %>%
-    pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names)
+    tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = make_clean_names)
   col_name_check <- all(col_names %in% names(table))
 
   # If both table check and column name check pass return TRUE, else return FALSE

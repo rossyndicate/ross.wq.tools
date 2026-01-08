@@ -33,10 +33,10 @@
 #' Expected Outputs: 
 #' site_order_list <- load_site_order_yaml("site_orders.yaml")
 #' site_order_list$clp
-#' #> [1] "joei", "cbri", "chd", "pfal", "pbr", "pman", "pbd", "bellvue", "salyer", "udall", "riverbend", "cottonwood", "elc", "archery", "riverbluffs"
+#' #> \[1\] "joei", "cbri", "chd", "pfal", "pbr", "pman", "pbd", "bellvue", "salyer", "udall", "riverbend", "cottonwood", "elc", "archery", "riverbluffs"
 #'
 #' site_order_list$sfm
-#' #> [1] "sfm"
+#' #> \[1\] "sfm"
 #'
 #' @param file_path Path to a YAML or CSV file containing site relationships.
 #'

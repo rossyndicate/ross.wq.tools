@@ -8,7 +8,7 @@
 #' time-weighted transitions between calibration parameters. Inspired by the
 #' driftR package's dr_factor function.
 #'
-#' @param df Tibble containing sensor data bounded by two calibrations
+#' @param df Tibble containing sensor data bounded by two calibrations. Must contain the `dt_col` column.
 #' @param dt_col Character string specifying the column name containing POSIXct
 #'   datetime information
 #' @param wt_col Character string specifying the name for the created weight
@@ -20,6 +20,11 @@
 #' @seealso [cal_three_point_drift_pH()]
 
 cal_wt <- function(df, dt_col, wt_col = "wt"){
+
+  # Check to make sure dt_col is in df
+  if(!dt_col %in% colnames(df)){
+    stop(paste0("The specified dt_col '", dt_col, "' is not present in the dataframe."))
+  }
 
   # Extract temporal boundaries for the calibration window
   first_dt <- min(df[[dt_col]])

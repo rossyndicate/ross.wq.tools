@@ -16,13 +16,29 @@
 #' sensor swaps interrupt calibration sequences, and missing calibration data.
 #' Only windows with valid calibration endpoints are retained for analysis.
 #'
-#' @param sensor_calibration_data_list Nested list from join_sensor_calibration_data()
-#'   organized by year and site-parameter combinations. Must include sensor_serial,
-#'   correct_calibration flags, and sensor_date_lead columns.
+#' @param sensor_calibration_data_list Nested list create from `cal_join_sensor_calibration_data()` and `load_calibration_data()`
+#'   organized by year and site-parameter combinations. Must include the following columns:
+#'   Sensor data from `munge_api_data()`:
+#'   - `site`: Site identifier
+#'   - `parameter`: Parameter name
+#'   - `DT_round`: Rounded timestamp (typically at 15-minute interval) of the sensor measurement in POSIXct format.
+#'   - `mean`: Mean sensor measurement value for the time interval. Generated from `tidy_api_data()`
+#'
+#'   Generated in `load_calibration_data()`
+#'   -  `sonde_serial`: Sonde serial number
+#'   -  `sensor_serial`: Sensor serial number
+#'   -  `correct_calibration` : Flag as to whether the calibration is good (TRUE) or bad (FALSE).
+#'   -  `sensor_date_lead`: Date of the next calibration for site-parameter
+#'   -   `slope`: Slope of the current calibration.
+#'   -   `offset`: Offset of the current calibration.
+#'   -   `slope_lag`: Slope of the previous calibration.
+#'   -   `offset_lag`: Offset of the previous calibration.
+#'   -   `slope_lead`: Slope of the next calibration for site-parameter
+#'   -   `offset_lead`: Offset of the next calibration for site-parameter
 #'
 #' @return Nested list structure (year -> site-parameter -> calibration chunks)
 #' where each chunk contains sensor data between two consecutive good calibrations
-#' from the same sensor. Chunks include slope_final and offset_final columns
+#' from the same sensor. Chunks include `slope_final` and `offset_final` columns
 #' determined by calibration quality. Chunks missing sonde data are excluded.
 #'
 #' @details

@@ -7,14 +7,34 @@
 cal_prepare_calibration_windows(sensor_calibration_data_list)
 }
 \arguments{
-\item{sensor_calibration_data_list}{Nested list from join_sensor_calibration_data()
-organized by year and site-parameter combinations. Must include sensor_serial,
-correct_calibration flags, and sensor_date_lead columns.}
+\item{sensor_calibration_data_list}{Nested list create from \code{cal_join_sensor_calibration_data()} and \code{load_calibration_data()}
+organized by year and site-parameter combinations. Must include the following columns:
+Sensor data from \code{munge_api_data()}:
+\itemize{
+\item \code{site}: Site identifier
+\item \code{parameter}: Parameter name
+\item \code{DT_round}: Rounded timestamp (typically at 15-minute interval) of the sensor measurement in POSIXct format.
+\item \code{mean}: Mean sensor measurement value for the time interval. Generated from \code{tidy_api_data()}
+}
+
+Generated in \code{load_calibration_data()}
+\itemize{
+\item \code{sonde_serial}: Sonde serial number
+\item \code{sensor_serial}: Sensor serial number
+\item \code{correct_calibration} : Flag as to whether the calibration is good (TRUE) or bad (FALSE).
+\item \code{sensor_date_lead}: Date of the next calibration for site-parameter
+\item \code{slope}: Slope of the current calibration.
+\item \code{offset}: Offset of the current calibration.
+\item \code{slope_lag}: Slope of the previous calibration.
+\item \code{offset_lag}: Offset of the previous calibration.
+\item \code{slope_lead}: Slope of the next calibration for site-parameter
+\item \code{offset_lead}: Offset of the next calibration for site-parameter
+}}
 }
 \value{
 Nested list structure (year -> site-parameter -> calibration chunks)
 where each chunk contains sensor data between two consecutive good calibrations
-from the same sensor. Chunks include slope_final and offset_final columns
+from the same sensor. Chunks include \code{slope_final} and \code{offset_final} columns
 determined by calibration quality. Chunks missing sonde data are excluded.
 }
 \description{

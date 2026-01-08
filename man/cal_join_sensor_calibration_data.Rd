@@ -8,7 +8,14 @@ cal_join_sensor_calibration_data(sensor_data_list, calibration_data_list)
 }
 \arguments{
 \item{sensor_data_list}{Nested list containing sensor time series data
-organized by year and site-parameter combinations}
+organized by year and site-parameter combinations.
+Each dataframe should include the following columns:
+\itemize{
+\item \code{site}: Site identifier
+\item \code{parameter}: Parameter name
+\item \code{DT_round}: Rounded timestamp (typically at 15-minute interval) of the sensor measurement in POSIXct format
+\item \code{mean}: Mean sensor measurement value for the time interval. Generated from \code{tidy_api_data()}
+}}
 
 \item{calibration_data_list}{Nested list containing calibration data
 organized by year and site-parameter combinations from

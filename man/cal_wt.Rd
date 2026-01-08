@@ -7,7 +7,7 @@
 cal_wt(df, dt_col, wt_col = "wt")
 }
 \arguments{
-\item{df}{Tibble containing sensor data bounded by two calibrations}
+\item{df}{Tibble containing sensor data bounded by two calibrations. Must contain the \code{dt_col} column.}
 
 \item{dt_col}{Character string specifying the column name containing POSIXct
 datetime information}

@@ -5,7 +5,7 @@
 \title{Linear Transition Between Inverse Linear Models (pH Specific)}
 \usage{
 cal_lin_trans_inv_lm_pH(
-  df = .,
+  df,
   mv_col,
   slope_from_col,
   offset_from_col,

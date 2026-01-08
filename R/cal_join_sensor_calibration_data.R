@@ -10,7 +10,13 @@
 #' organization structure.
 #'
 #' @param sensor_data_list Nested list containing sensor time series data
-#'   organized by year and site-parameter combinations
+#'   organized by year and site-parameter combinations.
+#'   Each dataframe should include the following columns:
+#'   - `site`: Site identifier
+#'   - `parameter`: Parameter name
+#'   - `DT_round`: Rounded timestamp (typically at 15-minute interval) of the sensor measurement in POSIXct format
+#'   - `mean`: Mean sensor measurement value for the time interval. Generated from `tidy_api_data()`
+#'
 #' @param calibration_data_list Nested list containing calibration data
 #'   organized by year and site-parameter combinations from
 #'   load_calibration_data()

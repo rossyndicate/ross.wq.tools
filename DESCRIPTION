@@ -44,7 +44,8 @@ Imports:
     tibble,
     tidyr,
     xml2,
-    groupdata2
+    groupdata2, 
+    slider
 Suggests: 
     knitr,
     rmarkdown

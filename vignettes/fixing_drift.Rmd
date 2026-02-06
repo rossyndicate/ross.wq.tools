@@ -458,6 +458,133 @@ bad_plot <- (p_bad_lin_add | p_bad_lin_mult) /
   plot_annotation(title = "Bad Drift Example: Correction Method Comparison",
                   theme = theme(plot.title = element_text(size = 16, face = "bold")))
 
+# Adding in additional data for context
+min_date <- min(good_example$DT_round, na.rm = TRUE)
+max_date <- max(good_example$DT_round, na.rm = TRUE)
+
+#Get pre/post data for plotting
+extra_data <- data$`riverbluffs-Turbidity` %>%
+  filter(
+    (DT_round >= (min_date - days(2)) & DT_round < min_date) | 
+    (DT_round > max_date & DT_round <= (max_date + days(2)))
+  )
+
+nearby_data <- data$`archery-Turbidity` %>%
+  filter(
+    (DT_round >= (min_date - days(1)) & DT_round <= (max_date + days(1)))
+  )
+
+# Plots to compare the results
+# Good example plots ====
+p_good_lin_add <- ggplot(good_lin_add, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+    geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Linear + Additive", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p_good_lin_mult <- ggplot(good_lin_mult, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+  geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Linear + Multiplicative", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p_good_exp_add <- ggplot(good_exp_add, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Exponential + Additive", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p_good_exp_mult <- ggplot(good_exp_mult, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+  geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Exponential + Multiplicative", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Bad example plots ====
+
+min_date <- min(bad_example$DT_round, na.rm = TRUE)
+max_date <- max(bad_example$DT_round, na.rm = TRUE)
+
+#Get pre/post data for plotting
+extra_data <- data$`riverbluffs-Turbidity` %>%
+  filter(
+    (DT_round >= (min_date - days(2)) & DT_round < min_date) | 
+    (DT_round > max_date & DT_round <= (max_date + days(2)))
+  )
+nearby_data <- data$`archery-Turbidity` %>%
+  filter(
+    (DT_round >= (min_date - days(1)) & DT_round <= (max_date + days(1)))
+  )
+
+p_bad_lin_add <- ggplot(bad_lin_add, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +  
+  geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Linear + Additive", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p_bad_lin_mult <- ggplot(bad_lin_mult, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+  geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Linear + Multiplicative", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p_bad_exp_add <- ggplot(bad_exp_add, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+  geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Exponential + Additive", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p_bad_exp_mult <- ggplot(bad_exp_mult, aes(x = DT_round)) +
+  geom_line(aes(y = mean_analysis, color = "Uncorrected"), linewidth = 1) +
+  geom_line(aes(y = mean_drift_trans, color = "Corrected"), linewidth = 1) +
+  geom_line(data = extra_data, aes(y = mean_analysis, color = "Pre/Post"), linewidth = 1) +
+  geom_line(data = nearby_data, aes(y = mean_analysis, color = "Nearby Site"), linewidth = 1, alpha = 0.5) +
+  scale_color_manual(values = c("Uncorrected" = "red", "Corrected" = "green", "Pre/Post" = "black", "Nearby Site" = "grey")) +
+  labs(title = "Exponential + Multiplicative", y = "Turbidity (NTU)", x = "Date", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Combine plots with patchwork to match table layout
+# Table order: linear + additive | linear + multiplicative
+#              exponential + additive | exponential + multiplicative
+
+good_plot <- (p_good_lin_add | p_good_lin_mult) / 
+  (p_good_exp_add | p_good_exp_mult) +
+  plot_annotation(title = "Good Drift Example: Correction Method Comparison",
+                  theme = theme(plot.title = element_text(size = 16, face = "bold")))
+
+bad_plot <- (p_bad_lin_add | p_bad_lin_mult) / 
+  (p_bad_exp_add | p_bad_exp_mult) +
+  plot_annotation(title = "Bad Drift Example: Correction Method Comparison",
+                  theme = theme(plot.title = element_text(size = 16, face = "bold")))
 # Display the plots
 good_plot
 bad_plot

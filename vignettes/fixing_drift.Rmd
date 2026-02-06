@@ -295,7 +295,7 @@ correction permutations to each of these data examples.
 # good linear additive
 good_lin_add <- cal_exp_one_point_drift(
   df = good_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_cal",
   wt_col = "wt",
@@ -305,7 +305,7 @@ good_lin_add <- cal_exp_one_point_drift(
 # good linear multiplicative
 good_lin_mult <- cal_exp_one_point_drift(
   df = good_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_cal",
   wt_col = "wt",
@@ -315,7 +315,7 @@ good_lin_mult <- cal_exp_one_point_drift(
 # good exponential additive
 good_exp_add <- cal_exp_one_point_drift(
   df = good_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_cal",
   wt_col = "wt",
@@ -325,7 +325,7 @@ good_exp_add <- cal_exp_one_point_drift(
 # good exponential multiplicative
 good_exp_mult <- cal_exp_one_point_drift(
   df = good_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_cal",
   wt_col = "wt",
@@ -337,7 +337,7 @@ good_exp_mult <- cal_exp_one_point_drift(
 # bad linear additive
 bad_lin_add <- cal_exp_one_point_drift(
   df = bad_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_clean",
   wt_col = "wt",
@@ -347,7 +347,7 @@ bad_lin_add <- cal_exp_one_point_drift(
 # good linear multiplicative
 bad_lin_mult <- cal_exp_one_point_drift(
   df = bad_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_clean",
   wt_col = "wt",
@@ -357,7 +357,7 @@ bad_lin_mult <- cal_exp_one_point_drift(
 # good exponential additive
 bad_exp_add <- cal_exp_one_point_drift(
   df = bad_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_clean",
   wt_col = "wt",
@@ -367,7 +367,7 @@ bad_exp_add <- cal_exp_one_point_drift(
 # good exponential multiplicative
 bad_exp_mult <- cal_exp_one_point_drift(
   df = bad_example,
-  lm_trans_col = "mean",
+  lm_trans_col = "mean_analysis",
   pre_col = "turb_pre_clean",
   post_col = "turb_post_clean",
   wt_col = "wt",

@@ -115,7 +115,7 @@ plot_drift <- function(df) {
   
   plot_ly(df, 
           x = ~DT_round, 
-          y = ~mean,
+          y = ~mean_analysis,
           color = ~drift,
           colors = c("FALSE" = "steelblue", "TRUE" = "tomato"),
           type = "scatter",

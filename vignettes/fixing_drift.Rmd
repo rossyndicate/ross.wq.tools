@@ -195,7 +195,8 @@ To do this we are going to use a method that is very similar to that in
 
 ```{r}
 # bind the examples
-drift_examples <- bind_rows(good_drift_flag, bad_drift_flag)
+drift_examples <- bind_rows(good_drift_flag, bad_drift_flag)%>%
+filter(!is.na(mean_analysis))
 
 # Split the examples based on the drift column
 drift_chunks <- drift_examples %>% 

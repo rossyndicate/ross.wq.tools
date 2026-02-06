@@ -101,7 +101,8 @@ data <- data %>%
           TRUE,
           FALSE
         ),
-        drift = ifelse(is.na(drift), FALSE, drift))
+        drift = ifelse(is.na(drift), FALSE, drift), 
+        mean_analysis = ifelse(verification_status %in% c("FLAGGED", "PASS"), mean, NA))
   })
 ```
 

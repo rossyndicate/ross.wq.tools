@@ -109,7 +109,6 @@ data <- data %>%
 # Plotting function and plot some data
 ```{r}
 plot_drift <- function(df) {
-  library(plotly)
   
   # Create color mapping
   colors <- ifelse(df$drift == TRUE, "tomato", "steelblue")

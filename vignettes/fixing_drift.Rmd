@@ -209,7 +209,7 @@ drift_chunks <- drift_examples %>%
 
 # Make a subset of the data that needs to be corrected (drift = "TRUE" AND has data)
 drift_correction_chunks <- drift_chunks %>% 
-  keep(~ any(.x$drift == "TRUE") & !all(is.na(.x$mean)))
+  keep(~ any(.x$drift == "TRUE") & !all(is.na(.x$mean_analysis)))
 
 # Make a subset of the data that does not need to be corrected
 no_correction_chunks <- drift_chunks %>% 

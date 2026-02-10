@@ -69,7 +69,7 @@ See the vignette "Using the Package in Rstudio" for examples of how to format yo
 
 We will read in the example data for three sites for two years. In this case, erroneous data have been manually removed (indicated where `approval_status` is "OMIT").
 
-**Note:** This is the data we will use to create our thresholds, but you can use any data you have for your sites (cleaned/uncleaned). The more data you have, the better your thresholds will be, but you can start with as little as a year of data if that's all you have. This method is not recommended if you do not have a full year's worth of data.
+**Note:** This is the data we will use to create our thresholds, but you can use any data you have for your sites (cleaned/uncleaned). The more data you have, the better your thresholds will be. You can start with as little as a year of data, though shorter records increase the risk of overfitting thresholds to patterns in that period. This method is not recommended if you do not have a full year's worth of data.
 
 ```{r}
 #data used in these examples are available in the `inst` folder

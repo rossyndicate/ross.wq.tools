@@ -60,5 +60,6 @@ sandbox*/
 
 # Data folders
 data/
+**/data/
 
 

@@ -1,24 +1,29 @@
 ---
-title: "fixing_drift"
-output: html_document
+title: "Fixing Drift"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fixing Drift}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
-This vignette demonstrates the complete workflow for correcting drift on optical
-water quality sensor data using linear and exponential models. The process
-corrects sensor drift caused by bio-fouling.
-
-This vignette will also demonstrate when this method works effectively and 
-when it does not.
-
-# Overview 
-
-# Prepare Environment
-```{r}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   eval = FALSE,
   echo = TRUE
 )
 ```
+
+This vignette demonstrates the complete workflow for correcting drift on optical
+water quality sensor data using linear and exponential models. The process
+corrects sensor drift caused by bio-fouling.
+
+This vignette will also demonstrate when this method works effectively and
+when it does not.
+
+# Overview
+
+# Prepare Environment
 
 ```{r}
 #Installing and loading all packages

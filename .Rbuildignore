@@ -1,5 +1,9 @@
-^ross\.wq\.tools\.Rproj$
-^\.Rproj\.user$
-^LICENSE\.md$
-^sandbox*$
-^data*$
+ross\.wq\.tools\.Rproj
+\.Rproj\.user
+LICENSE\.md
+sandbox
+^data$
+creds
+inst/threshold_example
+inst/explorations
+inst/threshold_example

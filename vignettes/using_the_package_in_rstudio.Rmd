@@ -373,7 +373,7 @@ Apply network-wide checks that compare data across multiple sites:
 See `load_site_order()` for details on formatting. Here we load from a YAML file:
 
 ```{r}
-site_order_list <- load_site_order("templates/template_site_orders.yaml")
+site_order_list <- load_site_order("inst/site_order_templates/template_site_orders.yaml")
 #Or from CSV
 #site_order_list <- load_site_order("templates/template_site_orders.csv")
 ```

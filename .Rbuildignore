@@ -2,7 +2,7 @@ ross\.wq\.tools\.Rproj
 \.Rproj\.user
 LICENSE\.md
 sandbox
-data
+^data$
 creds
 inst/threshold_example
 inst/explorations

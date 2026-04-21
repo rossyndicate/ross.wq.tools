@@ -59,17 +59,20 @@ add_field_notes <- function(df, notes) {
       # Remove any duplicate records that might have been introduced
       dplyr::distinct() %>%
 
-      # Remove sonde_employed and other field note columns if they exist
-      dplyr::select(-any_of(c("sonde_employed", "sonde_moved", "last_site_visit",
-                              "visit_comments", "sensor_malfunction", "cals_performed"))) %>%
-
       # Join the time series data with relevant field note information
       # This adds human observations to the sensor readings
       dplyr::full_join(., dplyr::select(site_field_notes,
                                         sonde_employed, sonde_moved,
                                         last_site_visit, DT_join, visit_comments,
                                         sensor_malfunction, cals_performed,
-                                        matches("pre|post")),
+                                        # Adding pre/post clean and post calibration values
+                                        chla_pre_clean, chla_post_clean, chla_post_cal,
+                                        cond_pre_clean, cond_post_clean, cond_post_cal,
+                                        fdom_pre_clean, fdom_post_clean, fdom_post_cal,
+                                        orp_pre_clean, orp_post_clean, orp_post_cal,
+                                        ph_pre_clean, ph_post_clean, ph_post_cal,
+                                        rdo_pre_clean, rdo_post_clean, rdo_post_cal,
+                                        turb_pre_clean, turb_post_clean, turb_post_cal),
                        by = c('DT_join')) %>%
 
       # Ensure proper temporal ordering of the combined data
@@ -82,8 +85,7 @@ add_field_notes <- function(df, notes) {
       # and forward-fill deployment status and site visit information
       # This maintains status continuity between discrete field observations
       dplyr::mutate(sonde_employed = ifelse(is.na(sonde_employed), 0, sonde_employed)) %>%
-      tidyr::fill(c(sonde_employed, last_site_visit, sensor_malfunction,
-                    turb_pre_clean, turb_post_clean)) %>%
+      tidyr::fill(c(sonde_employed, last_site_visit, sensor_malfunction)) %>%
 
       # Handle special case: If no site visit information exists at the beginning
       # of the record, assume sonde was not yet deployed (sonde_employed = 1)

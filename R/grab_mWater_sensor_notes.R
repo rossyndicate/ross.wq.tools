@@ -70,7 +70,15 @@ grab_mWater_sensor_notes <- function(mWater_api_data){
       cal_report_collected, sonde_moved, sensor_malfunction, sensor_pulled,
       sensor_deployed, sensor_swapped_notes, visit_type, DT_join,
       start_DT, end_dt, date, visit_comments, photos_downloaded, field_season,
-      last_site_visit, matches("pre|post")
+      last_site_visit,
+      # Adding pre/post clean and post calibration values
+      chla_pre_clean = pre_clean_chla, chla_post_clean = post_clean_chla, chla_post_cal = post_cal_chla,
+      cond_pre_clean, cond_post_clean, cond_post_cal,
+      fdom_pre_clean = pre_clean_fdom, fdom_post_clean = post_clea_fdom, fdom_post_cal = post_cal_fdom,
+      orp_pre_clean, orp_post_clean, orp_post_cal,
+      ph_pre_clean, ph_post_clean, ph_post_cal,
+      rdo_pre_clean, rdo_post_clean, rdo_post_cal,
+      turb_pre_clean, turb_post_clean, turb_post_cal
     )
 
   return(mWater_field_notes)

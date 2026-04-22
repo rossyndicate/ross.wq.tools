@@ -4,7 +4,7 @@
 \alias{cal_one_point_drift}
 \title{One Point Drift Calibration}
 \usage{
-cal_one_point_drift(df, lm_trans_col, drift_corr_col, wt_col)
+cal_one_point_drift(df, lm_trans_col, pre_col, post_col, wt_col)
 }
 \arguments{
 \item{df}{Tibble containing sensor data bounded by two calibrations}
@@ -12,11 +12,11 @@ cal_one_point_drift(df, lm_trans_col, drift_corr_col, wt_col)
 \item{lm_trans_col}{Character string specifying the column name containing
 linearly transformed data from cal_lin_trans_lm()}
 
-\item{drift_corr_col}{Character string specifying the column name containing
-drift correction information}
-
 \item{wt_col}{Character string specifying the column name containing temporal
 weight parameters}
+
+\item{drift_corr_col}{Character string specifying the column name containing
+drift correction information}
 }
 \description{
 Applies single-point drift correction using pre- and post-measurement

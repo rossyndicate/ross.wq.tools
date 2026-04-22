@@ -1,7 +1,7 @@
 Package: ross.wq.tools
 Title: Water Quality Time Series Analysis Tools
-Version: 0.0.0.9000
-Date: 2025-10-21
+Version: 1.1.0
+Date: 2026-04-21
 Authors@R: c(
     person("Juan De La Torre", email = "Juan.DeLaTorre@colostate.edu", 
            role = c("aut", "cre")),
@@ -20,33 +20,33 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports: 
-    data.table,
-    tidyverse,
-    lubridate,
-    zoo,
-    padr,
-    stats,
-    RcppRoll,
-    yaml,
-    janitor,
-    Rcpp,
-    magrittr,
-    dplyr,
-    purrr,
-    rlang,
-    httr2,
-    rvest,
-    stringr,
+Imports:
     arrow,
+    data.table,
+    dplyr,
+    groupdata2,
+    httr2,
+    janitor,
+    lubridate,
+    magrittr,
+    padr,
+    purrr,
+    RcppRoll,
     readr,
     readxl,
+    rlang,
+    rvest,
+    slider,
+    stats,
+    stringr,
     tibble,
     tidyr,
     xml2,
-    groupdata2, 
-    slider
+    yaml,
+    zoo
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Config/testthat/edition: 3

@@ -2,8 +2,14 @@ ross\.wq\.tools\.Rproj
 \.Rproj\.user
 LICENSE\.md
 sandbox
+scratch
 ^data$
 creds
 inst/threshold_example
 inst/explorations
 inst/threshold_example
+^.*\.Rproj$
+^\.Rproj\.user$
+^CLAUDE\.md$
+^\.claude$
+^\.vscode$

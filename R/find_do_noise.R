@@ -47,8 +47,8 @@ find_do_noise <- function(df){
       # Create binary indicator for DO interference flag
       dplyr::mutate(DO_drift_binary = ifelse(grepl("DO interference", flag), 1, 0)) %>%
       # Apply rolling window check in both right-aligned and center-aligned modes
-      dplyr::mutate(right = data.table::frollapply(DO_drift_binary, n = 96, FUN = check_day_hour_window_fail, align = "right", fill = NA),
-                    center = data.table::frollapply(DO_drift_binary, n = 96, FUN = check_day_hour_window_fail, align = "center", fill = NA)) %>%
+      dplyr::mutate(right = data.table::frollapply(DO_drift_binary, N = 96, FUN = check_day_hour_window_fail, align = "right", fill = NA),
+                    center = data.table::frollapply(DO_drift_binary, N = 96, FUN = check_day_hour_window_fail, align = "center", fill = NA)) %>%
       # Flag possible burial if either window check indicates persistent interference
       add_flag(right == 1 | center == 1, "Possible burial") %>% 
       select(-c(DO_drift_binary, right, center))

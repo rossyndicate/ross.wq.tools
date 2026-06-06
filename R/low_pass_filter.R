@@ -49,17 +49,17 @@ low_pass_filter <- function(df) {
       mutate(
         # First pass
         smoothed_mean = if_else(is.na(smoothed_mean), 
-                                data.table::frollapply(mean, n = 5, FUN = binomial_kernel, 
+                                data.table::frollapply(mean, N = 5, FUN = binomial_kernel, 
                                                        fill = NA, align = "center"),
                                 smoothed_mean),
         # Second pass
         smoothed_mean = if_else(is.na(smoothed_mean), 
-                                data.table::frollapply(smoothed_mean, n = 5, FUN = binomial_kernel, 
+                                data.table::frollapply(smoothed_mean, N = 5, FUN = binomial_kernel, 
                                                        fill = NA, align = "center"),
                                 smoothed_mean),
         # Third pass
         smoothed_mean = if_else(is.na(smoothed_mean), 
-                                data.table::frollapply(smoothed_mean, n = 5, FUN = binomial_kernel, 
+                                data.table::frollapply(smoothed_mean, N = 5, FUN = binomial_kernel, 
                                                        fill = NA, align = "center"),
                                 smoothed_mean)
       )

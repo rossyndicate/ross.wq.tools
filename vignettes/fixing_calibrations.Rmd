@@ -81,9 +81,9 @@ This pulls the data with the calibration succession in it.
 ```{r load-cal-data}
 # TODO: still need to find the right measure to determine if a calibration is bad 
 load_calibration_data(
-  cal_data_file_path = here::here("data", "collated", "sensor", "cal_reports", "munged_calibration_data.RDS"),
+  cal_data_file_path = here::here("..", "poudre_sonde_network", "data", "collated", "sensor", "cal_reports", "munged_calibration_data.RDS"),
   update = TRUE,
-  field_cal_dir = here::here("data", "raw", "sensor", "calibration_reports")
+  field_cal_dir = here::here("..", "poudre_sonde_network", "data", "raw", "sensor", "calibration_reports")
 )
 ```
 
@@ -141,7 +141,7 @@ according to the file name of the calibration file.
 #            "complete_dataset",  "23_25_hv_pull"))
 
 sensor_data <- arrow::read_parquet(
-  here::here("data", "collated", "sensor", "compiled_ross_sensor_data_2025-12-11.parquet"),
+  here::here("..", "poudre_sonde_network", "data", "collated", "sensor", "compiled_ross_sensor_data_2026-07-15.parquet"),
   as_data_frame = TRUE
 ) %>%
   split(f = lubridate::year(.$DT_round)) %>%
@@ -261,7 +261,7 @@ the complexity of parameter-specific calibration requirements.
 # Saving the Back-calibrated Data
 
 ```{r save-cal-data}
-write_rds(calibrated_data, here::here("data", "raw", "sensor", "manual_data_verification", "complete_dataset", "calibrated_sensor_data.rds"))
+write_rds(calibrated_data, here::here("..", "poudre_sonde_network","data", "raw", "sensor", "manual_data_verification", "complete_dataset", "calibrated_sensor_data_2026-08-04.rds"))
 ```
 
 # Explore the calibrations
@@ -293,14 +293,14 @@ ex_plot <- function(df) {
   # Combine all data into one data frame with descriptive categories
   combined_data <- bind_rows(
     # Original data
-    df %>% 
-      select(DT_round, value = mean_cleaned, correct_calibration) %>%
-      mutate(data_type = ifelse(correct_calibration, 
-                               "Original Data (Good Calibration)", 
+    df %>%
+      select(DT_round, value = mean, correct_calibration) %>%
+      mutate(data_type = ifelse(correct_calibration,
+                               "Original Data (Good Calibration)",
                                "Original Data (Bad Calibration)")),
     # Calibrated data
     df %>%
-      select(DT_round, value = mean_cleaned_cal) %>%
+      select(DT_round, value = mean_cal) %>%
       mutate(data_type = "Calibrated Data")
   )
   

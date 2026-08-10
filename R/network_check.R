@@ -34,8 +34,8 @@
 network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_order_arg = site_order_list){
 
   # Extract site and parameter name from dataframe
-  site_name <- unique(na.omit(df$site))
-  parameter_name <- unique(na.omit(df$parameter))
+  site_name <- unique(stats::na.omit(df$site))
+  parameter_name <- unique(stats::na.omit(df$parameter))
 
   #Check if site_order_arg exists and is a list
   if(missing(site_order_arg) || !is.list(site_order_arg)){
@@ -44,12 +44,12 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
 
   #grab the lists that have the site name in them
   sites_order <- site_order_arg %>%
-    keep(~ any(.x == site_name))
+    purrr::keep(~ any(.x == site_name))
   #if no site order is found for the site, return original dataframe with message
   if(length(sites_order) == 0){
     message(paste0("Skipping network check (No site order found in site_order_arg) for: ", site_name, "\nPlease check the site name and site order list."))
 
-    return(df %>% mutate(auto_flag = flag))
+    return(df %>% dplyr::mutate(auto_flag = flag))
   }
   #if a list that matches the site name, use that one otherwise use the first one
   if (site_name %in% names(sites_order)) {
@@ -61,7 +61,7 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
   # If no site order is found for the site (ie only one site in network list), return original dataframe with message
   if(length(sites_order) ==  1){
     message(paste0("Skipping network check (no upstream/downstream relationship) for: ", site_name))
-    return(df %>% mutate(auto_flag = flag))
+    return(df %>% dplyr::mutate(auto_flag = flag))
     }
 
   # Find the index of current site in ordered list

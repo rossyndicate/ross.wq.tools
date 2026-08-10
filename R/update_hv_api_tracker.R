@@ -95,15 +95,15 @@ update_hv_api_tracker <- function(post_munged_data_list,
     success <- !is.null(df) && nrow(df) > 0
     data_count <- if (success) nrow(df) else 0
     
-    tibble(site_parameter = idx,
-           success, 
+    tibble::tibble(site_parameter = idx,
+           success,
            data_count)
-  }) %>% 
-    filter(site_parameter %in% hv_api_tracking_df$site_parameter)
-  
+  }) %>%
+    dplyr::filter(site_parameter %in% hv_api_tracking_df$site_parameter)
+
   # Updating the api tracker ===================================================
-  updated_tracker <- left_join(hv_api_tracking_df, received_data_tracker_df, by = "site_parameter") %>%
-    mutate(
+  updated_tracker <- dplyr::left_join(hv_api_tracking_df, received_data_tracker_df, by = "site_parameter") %>%
+    dplyr::mutate(
       # Fix success and data_count columns
       success = dplyr::if_else(is.na(success), FALSE, success),
       data_count = dplyr::if_else(is.na(data_count), 0, data_count),
@@ -112,18 +112,18 @@ update_hv_api_tracker <- function(post_munged_data_list,
       # Update last success date if successful
       last_success = dplyr::if_else(success == TRUE, sys_time_arg, last_success),
       # Mark as auto-disabled if failure count exceeds threshold
-      auto_disabled = failure_count >= auto_disable_threshold) %>% 
-    rowwise() %>% 
-    mutate(
+      auto_disabled = failure_count >= auto_disable_threshold) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
       # Set try_again to true if last success was more than a week ago
       try_again = dplyr::if_else(
         difftime(sys_time_arg, last_success, units = "days")[[1]] >= try_again_threshold,
         TRUE,
         try_again
-      )) %>% 
-    ungroup() %>% 
+      )) %>%
+    dplyr::ungroup() %>%
     # Clean up after the join
-    select(-c(success, data_count))
+    dplyr::select(-c(success, data_count))
   
   # Save the updated tracker ===================================================
   

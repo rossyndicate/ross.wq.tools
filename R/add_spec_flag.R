@@ -35,7 +35,7 @@ add_spec_flag <- function(df, spec_table = yaml::read_yaml("data/qaqc/sensor_spe
   
   # Extract the parameter name from the dataframe
   # This assumes a single parameter type per dataframe
-  parameter_name <- unique(na.omit(df$parameter))
+  parameter_name <- unique(stats::na.omit(df$parameter))
   
   # Pull the sensor specification range from the yaml file
   # Using eval(parse()) to handle any R expressions in the threshold values

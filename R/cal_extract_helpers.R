@@ -1,15 +1,38 @@
+# Internal replacement for rvest::html_table(), scoped to the key/value
+# tables used in In-Situ calibration report HTML (every table in these
+# reports is consumed via pivot_wider(names_from = X1, values_from = X2) --
+# no header row, no rowspan/colspan).
+xml_table <- function(table_node) {
+  rows <- xml2::xml_find_all(table_node, ".//tr")
+  cells <- lapply(rows, function(r) {
+    trimws(xml2::xml_text(xml2::xml_find_all(r, "./td|./th")))
+  })
+  n_col <- max(lengths(cells), 0)
+  if (n_col == 0) return(as.data.frame(matrix(nrow = 0, ncol = 0)))
+  padded <- lapply(cells, function(x) { length(x) <- n_col; x })
+  df <- as.data.frame(do.call(rbind, padded), stringsAsFactors = FALSE)
+  names(df) <- paste0("X", seq_len(n_col))
+  df
+}
+
+# Mirrors `rvest::html_elements("table") %>% rvest::html_table()`: applies
+# xml_table() across a nodeset of <table> elements and returns a list.
+xml_table_list <- function(table_nodes) {
+  lapply(table_nodes, xml_table)
+}
+
 #' @title Extract Chlorophyll-a data from calibration file html markup
 #' @param div A read-in HTML div element containing calibration data tables to be parsed.
 #' @export
 cal_extract_chla_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0)  %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0)  %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -46,7 +69,7 @@ cal_extract_chla_data <- function(div) {
   if(cal_coef_check) {
     calibration_coefs <- div_tables[["slope_and_offset_1"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
       dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x)))
   } else {
     calibration_coefs <- NULL
@@ -61,13 +84,13 @@ cal_extract_chla_data <- function(div) {
 #' @export
 cal_extract_conductivity_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0) %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0) %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -110,7 +133,7 @@ cal_extract_conductivity_data <- function(div) {
   if(cal_slope_check && cal_offset_check){
     calibration_coefs <- div_tables[["calibration_details"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
       dplyr::select(slope = cell_constant, offset, units) %>%
       dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x)))
   } else if(cal_slope_check && !cal_offset_check) {
@@ -132,13 +155,13 @@ cal_extract_conductivity_data <- function(div) {
 #' @export
 cal_extract_fdom_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0) %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0) %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -175,7 +198,7 @@ cal_extract_fdom_data <- function(div) {
   if(cal_coef_check) {
     calibration_coefs <- div_tables[["slope_and_offset_1"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
       dplyr::mutate(dplyr::across(c("slope", "offset"), ~as.numeric(.x)))
   } else {
     calibration_coefs <- NULL
@@ -190,13 +213,13 @@ cal_extract_fdom_data <- function(div) {
 #' @export
 cal_extract_ph_orp_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0) %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0) %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -211,8 +234,8 @@ cal_extract_ph_orp_data <- function(div) {
     div_metadata <- div_tables[["sensor"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
       dplyr::rename(sensor_serial = serial_number) %>%
-      dplyr::mutate(sensor = str_split(sensor, "/")) %>%
-      unnest(sensor) %>%
+      dplyr::mutate(sensor = stringr::str_split(sensor, "/")) %>%
+      tidyr::unnest(sensor) %>%
       dplyr::mutate(
         sensor = janitor::make_clean_names(sensor),
         calibration_coefs = NULL,
@@ -224,8 +247,8 @@ cal_extract_ph_orp_data <- function(div) {
   div_metadata <- div_tables[["sensor"]] %>%
     tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names)  %>%
     dplyr::rename(sensor_serial = serial_number) %>%
-    dplyr::mutate(sensor = str_split(sensor, "/")) %>%
-    unnest(sensor) %>%
+    dplyr::mutate(sensor = stringr::str_split(sensor, "/")) %>%
+    tidyr::unnest(sensor) %>%
     dplyr::mutate(sensor = janitor::make_clean_names(sensor))
 
   cal_coef_check_ph_1 <- cal_div_table_check(
@@ -242,12 +265,12 @@ cal_extract_ph_orp_data <- function(div) {
 
   if(cal_coef_check_ph_1 && cal_coef_check_ph_2){
     calibration_coefs_ph <- div_tables[c("slope_and_offset_1", "slope_and_offset_2")] %>%
-      map_dfr(function(ph_coef_df){
+      purrr::map_dfr(function(ph_coef_df){
         pivot_df <- ph_coef_df %>%
           tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names)
       }) %>%
-      separate_wider_delim(slope, delim = " ", names = c("slope", "slope_units")) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "offset_units")) %>%
+      tidyr::separate_wider_delim(slope, delim = " ", names = c("slope", "slope_units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "offset_units")) %>%
       dplyr::mutate(
         point = c(1,2),
         dplyr::across(c(slope, offset), ~as.numeric(.x))
@@ -270,7 +293,7 @@ cal_extract_ph_orp_data <- function(div) {
         slope = 1,
         orp_solution = janitor::make_clean_names(orp_solution)
       ) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "offset_units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "offset_units")) %>%
       dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x))) %>%
       dplyr::select(slope, offset, offset_units)
   } else {
@@ -294,13 +317,13 @@ cal_extract_ph_orp_data <- function(div) {
 #' @export
 cal_extract_pressure_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0) %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0) %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -337,7 +360,7 @@ cal_extract_pressure_data <- function(div) {
   if(cal_coef_check) {
     calibration_coefs <- div_tables[["calibration_details"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
-      separate_wider_delim(zero_offset, delim = " ", names = c("offset", "units")) %>%
+      tidyr::separate_wider_delim(zero_offset, delim = " ", names = c("offset", "units")) %>%
       dplyr::mutate(
         slope = 1,
         dplyr::across(c(offset), ~as.numeric(.x))
@@ -356,13 +379,13 @@ cal_extract_pressure_data <- function(div) {
 #' @export
 cal_extract_rdo_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0) %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0) %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -399,7 +422,7 @@ cal_extract_rdo_data <- function(div) {
   if(cal_coef_check){
     calibration_coefs <- div_tables[["calibration_details"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
       dplyr::mutate(dplyr::across(c(slope, offset), ~as.numeric(.x)))
   } else {
     calibration_coefs <- NULL
@@ -414,13 +437,13 @@ cal_extract_rdo_data <- function(div) {
 #' @export
 cal_extract_turbidity_data <- function(div) {
   div_tables <- div %>%
-    rvest::html_elements("table") %>%
-    discard(\(x) length(rvest::html_elements(x, "caption")) == 0) %>%
-    rvest::html_table() %>%
-    set_names(
+    xml2::xml_find_all(".//table") %>%
+    purrr::discard(\(x) length(xml2::xml_find_all(x, ".//caption")) == 0) %>%
+    xml_table_list() %>%
+    purrr::set_names(
       {div %>%
-          rvest::html_elements("caption") %>%
-          rvest::html_text() %>%
+          xml2::xml_find_all(".//caption") %>%
+          xml2::xml_text() %>%
           janitor::make_clean_names()
       }
     )
@@ -457,7 +480,7 @@ cal_extract_turbidity_data <- function(div) {
   if(cal_coef_check) {
     calibration_coefs <- div_tables[["calibration_details"]] %>%
       tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
-      separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
+      tidyr::separate_wider_delim(offset, delim = " ", names = c("offset", "units")) %>%
       dplyr::mutate(dplyr::across(c("slope", "offset"), ~as.numeric(.x)))
   } else {
     calibration_coefs <- NULL

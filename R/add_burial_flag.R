@@ -48,7 +48,7 @@ add_burial_flag <- function(df){
     # Remove the temporary DO flag column we added
     dplyr::select(-do_flag) %>%
     # Add back the original DO parameter data (already properly flagged)
-    dplyr::bind_rows(df %>% filter(parameter == "DO")) %>%
+    dplyr::bind_rows(df %>% dplyr::filter(parameter == "DO")) %>%
     # Remove any duplicate rows that might have been created
     dplyr::distinct()
     

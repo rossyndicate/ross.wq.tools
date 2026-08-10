@@ -46,20 +46,20 @@ low_pass_filter <- function(df) {
     # Each application uses a centered 5-point window covering ±30 minutes (at 15-min intervals)
     df <- df %>% 
       add_column_if_not_exists(column_name = "smoothed_mean") %>% 
-      mutate(
+      dplyr::mutate(
         # First pass
-        smoothed_mean = if_else(is.na(smoothed_mean), 
-                                data.table::frollapply(mean, n = 5, FUN = binomial_kernel, 
+        smoothed_mean = dplyr::if_else(is.na(smoothed_mean),
+                                data.table::frollapply(mean, N = 5, FUN = binomial_kernel,
                                                        fill = NA, align = "center"),
                                 smoothed_mean),
         # Second pass
-        smoothed_mean = if_else(is.na(smoothed_mean), 
-                                data.table::frollapply(smoothed_mean, n = 5, FUN = binomial_kernel, 
+        smoothed_mean = dplyr::if_else(is.na(smoothed_mean),
+                                data.table::frollapply(smoothed_mean, N = 5, FUN = binomial_kernel,
                                                        fill = NA, align = "center"),
                                 smoothed_mean),
         # Third pass
-        smoothed_mean = if_else(is.na(smoothed_mean), 
-                                data.table::frollapply(smoothed_mean, n = 5, FUN = binomial_kernel, 
+        smoothed_mean = dplyr::if_else(is.na(smoothed_mean),
+                                data.table::frollapply(smoothed_mean, N = 5, FUN = binomial_kernel,
                                                        fill = NA, align = "center"),
                                 smoothed_mean)
       )

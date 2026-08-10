@@ -93,25 +93,35 @@ max_workers <- 4  # Maximum number of parallel workers
 The workflow uses several R packages and custom functions in {ross.wq.tools}. Here's how to set up the environment:
 
 ```{r}
-# load required packages
-package_loader <- function(x) {
-  if (x %in% installed.packages()) {
-    suppressMessages({
-      library(x, character.only = TRUE)
-    })
-  } else {
-    suppressMessages({
-      install.packages(x)
-      library(x, character.only = TRUE)
-    })
-  }
-}
-
-# load all required packages
+# Installing and loading all packages
 invisible(
-  lapply(c("arrow", "data.table", "httr2", "tidyverse", "lubridate", "zoo", 
-           "padr", "stats", "RcppRoll", "yaml", "here", "furrr", "ross.wq.tools"),
-         package_loader)
+  lapply(c(
+    "arrow", # Reading/writing parquet files
+    "data.table", # Fast data manipulation
+    "httr2", # HTTP requests to the HydroVu/mWater APIs
+    "tidyverse", # Data manipulation
+    "lubridate", # Date-Time manipulation
+    "zoo", # Rolling window calculations
+    "padr", # Padding time series with missing intervals
+    "stats",
+    "RcppRoll", # Rolling window statistics
+    "yaml", # Reading credential and threshold files
+    "here", # Easy, cross platform file referencing
+    "furrr", # Parallel processing
+    "ross.wq.tools"
+  ),
+  function(x) {
+    if (x %in% installed.packages()) {
+      suppressMessages({
+        library(x, character.only = TRUE)
+      })
+    } else {
+      suppressMessages({
+        install.packages(x)
+        library(x, character.only = TRUE)
+      })
+    }
+  })
 )
 
 # set up parallel processing

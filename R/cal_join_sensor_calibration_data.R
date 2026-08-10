@@ -32,7 +32,7 @@ cal_join_sensor_calibration_data <- function(sensor_data_list, calibration_data_
 
   # Process each year of data
   year_data_list <- years %>%
-    map(function(year){
+    purrr::map(function(year){
 
       # Extract sensor and calibration data for current year
       year_sensor_data <- sensor_data_list[[year]]
@@ -43,7 +43,7 @@ cal_join_sensor_calibration_data <- function(sensor_data_list, calibration_data_
 
       # Process each site-parameter combination
       site_param_df_list <- site_params %>%
-        map(function(site_param){
+        purrr::map(function(site_param){
 
           # Extract data for current site-parameter combination
           sensor_data <- year_sensor_data[[site_param]]
@@ -52,17 +52,17 @@ cal_join_sensor_calibration_data <- function(sensor_data_list, calibration_data_
           # Join calibration data to sensor data using temporal proximity matching.
           # For each sensor timestamp, find the most recent calibration that
           # precedes or equals the sensor measurement time
-          by <- join_by(site, closest(DT_round >= file_date))
+          by <- dplyr::join_by(site, closest(DT_round >= file_date))
           joined_sensor_calibration_data <- dplyr::left_join(sensor_data, calibration_data, by) %>%
             dplyr::arrange(DT_round)
 
           return(joined_sensor_calibration_data)
         }) %>%
-        set_names(site_params)
+        purrr::set_names(site_params)
 
       return(site_param_df_list)
     }) %>%
-    set_names(years)
+    purrr::set_names(years)
 
   return(year_data_list)
 }

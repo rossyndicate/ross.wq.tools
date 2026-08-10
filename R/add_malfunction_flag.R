@@ -43,7 +43,7 @@ add_malfunction_flag <- function(df, malfunction_records){
   # Helper function to add malfunction flags while preserving existing ones
   add_mal_flag <- function(df, condition_arg, description_arg) {
     df <- df %>% dplyr::mutate(mal_flag = dplyr::case_when(
-      {{condition_arg}} ~ if_else(is.na(mal_flag), paste(description_arg),
+      {{condition_arg}} ~ dplyr::if_else(is.na(mal_flag), paste(description_arg),
                                   ifelse(!grepl(description_arg, mal_flag), paste(mal_flag, description_arg, sep = ";\n"), mal_flag)),
       TRUE ~ mal_flag))
     return(df)
@@ -101,27 +101,27 @@ add_malfunction_flag <- function(df, malfunction_records){
                       !rowid %in% depth_funk$rowid & !rowid %in% unsubmerged$rowid)
 
     # Create time intervals for each malfunction type
-    drift_interval_list <- map2(
+    drift_interval_list <- purrr::map2(
       .x = drift$start_DT,
       .y = drift$end_DT,
       .f = ~lubridate::interval(.x, .y, tz = "UTC"))
 
-    burial_interval_list <- map2(
+    burial_interval_list <- purrr::map2(
       .x = burial$start_DT,
       .y = burial$end_DT,
       .f = ~lubridate::interval(.x, .y, tz = "UTC"))
 
-    depth_interval_list <- map2(
+    depth_interval_list <- purrr::map2(
       .x = depth_funk$start_DT,
       .y = depth_funk$end_DT,
       .f = ~lubridate::interval(.x, .y, tz = "UTC"))
 
-    unsubmerged_interval_list <- map2(
+    unsubmerged_interval_list <- purrr::map2(
       .x = unsubmerged$start_DT,
       .y = unsubmerged$end_DT,
       .f = ~lubridate::interval(.x, .y, tz = "UTC"))
 
-    general_interval_list <- map2(
+    general_interval_list <- purrr::map2(
       .x = general_malfunction$start_DT,
       .y = general_malfunction$end_DT,
       .f = ~lubridate::interval(.x, .y, tz = "UTC"))

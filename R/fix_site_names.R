@@ -31,19 +31,20 @@
 #' @export
 fix_site_names <- function(df, site_col = "site") {
   fixed_df <- df %>%
-    dplyr::mutate(!!sym(site_col) := tolower(!!sym(site_col))) %>%
+    dplyr::mutate(!!rlang::sym(site_col) := tolower(!!rlang::sym(site_col))) %>%
     # renaming all the sites, just in case
-    dplyr::mutate(!!sym(site_col) := dplyr::case_when(
-      grepl("tamasag", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "tamasag", "bellvue"),
-      grepl("legacy", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "legacy", "salyer"),
-      grepl("lincoln", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "lincoln", "udall"),
-      grepl("timberline", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "timberline", "riverbend"),
-      grepl("prospect", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "prospect", "cottonwood"),
-      grepl("boxelder", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "boxelder", "elc"),
-      grepl("archery", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "archery", "archery"),
-      grepl("river bluffs", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "river bluffs", "riverbluffs"),
-      grepl("mountaincampus", !!sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!sym(site_col), "mountaincampus", "mtncampus"),
-      TRUE ~ !!sym(site_col))
+    dplyr::mutate(!!rlang::sym(site_col) := dplyr::case_when(
+      grepl("tamasag", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "tamasag", "bellvue"),
+      grepl("rist", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "rist", "bellvue"),
+      grepl("legacy", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "legacy", "salyer"),
+      grepl("lincoln", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "lincoln", "udall"),
+      grepl("timberline", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "timberline", "riverbend"),
+      grepl("prospect", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "prospect", "cottonwood"),
+      grepl("boxelder", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "boxelder", "elc"),
+      grepl("archery", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "archery", "archery"),
+      grepl("river bluffs", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "river bluffs", "riverbluffs"),
+      grepl("mountaincampus", !!rlang::sym(site_col), ignore.case = TRUE) ~ stringr::str_replace(!!rlang::sym(site_col), "mountaincampus", "mtncampus"),
+      TRUE ~ !!rlang::sym(site_col))
     )
   return(fixed_df)
 }

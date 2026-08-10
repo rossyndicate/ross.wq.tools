@@ -66,7 +66,7 @@ cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "s
   # Extract calibration information from all HTML files ====
 
   # Load HTML markup from all calibration files
-  cal_html <- purrr::map(f_cal_paths, rvest::read_html)
+  cal_html <- purrr::map(f_cal_paths, xml2::read_html)
 
   # Extract calibration data from each HTML file
   cal_data <- purrr::map2_dfr(
@@ -75,8 +75,8 @@ cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "s
 
       # Extract overall calibration metadata from first table
       file_information <- html_markup %>%
-        rvest::html_elements("table") %>%
-        rvest::html_table() %>%
+        xml2::xml_find_all(".//table") %>%
+        xml_table_list() %>%
         purrr::pluck(1) %>%
         tidyr::pivot_wider(names_from = X1, values_from = X2) %>%
         janitor::clean_names() %>%
@@ -85,15 +85,15 @@ cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "s
 
       # Extract each div element with sensor-specific calibration data
       html_divs <- html_markup %>%
-        rvest::html_elements("div")
+        xml2::xml_find_all(".//div")
 
       # Process each sensor div for calibration coefficients
       html_div_info <- html_divs %>%
         purrr::map_dfr(function(div){
           # Identify sensor type from div metadata
           sensor <- div %>%
-            rvest::html_elements("table") %>%
-            rvest::html_table() %>%
+            xml2::xml_find_all(".//table") %>%
+            xml_table_list() %>%
             purrr::pluck(1) %>%
             tidyr::pivot_wider(names_from = X1, values_from = X2, names_repair = janitor::make_clean_names) %>%
             dplyr::mutate(sensor = janitor::make_clean_names(sensor)) %>%
@@ -184,8 +184,8 @@ cal_extract_markup_data <- function(field_cal_dir = here::here("data", "raw", "s
         # De-duplicate the data
         purrr::map_dfr(cal_deduplicate) %>%
         split(f = list(.$sensor, .$sensor_serial), sep = "-") %>%
-        discard(~is.null(.) || nrow(.) == 0) %>%
-        map_dfr(function(sensor_serial_df) {
+        purrr::discard(~is.null(.) || nrow(.) == 0) %>%
+        purrr::map_dfr(function(sensor_serial_df) {
 
           # Find succession for pH
           if(all(!is.na(sensor_serial_df$point))) {

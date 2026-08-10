@@ -45,21 +45,21 @@
 add_seasonal_flag <- function(df, threshold_table) {
   # Extract the unique site name from the dataframe
   # This assumes a single site per dataframe
-  site_name <- unique(na.omit(df$site))
-  
+  site_name <- unique(stats::na.omit(df$site))
+
   # Extract the unique parameter name from the dataframe
   # This assumes a single parameter type per dataframe
-  parameter_name <- unique(na.omit(df$parameter))
-  
+  parameter_name <- unique(stats::na.omit(df$parameter))
+
   # Filter threshold table to get only values relevant to this site-parameter combination
   # and remove the site and parameter columns as they're no longer needed for joining
   lookup <- threshold_table %>%
-    filter(site == site_name & parameter == parameter_name) %>%
-    select(!c(site, parameter))
-  
+    dplyr::filter(site == site_name & parameter == parameter_name) %>%
+    dplyr::select(!c(site, parameter))
+
   df <- df %>%
     # Join seasonal thresholds to the data using the season column as the key
-    left_join(lookup, by = "season") %>%
+    dplyr::left_join(lookup, by = "season") %>%
     
     # Flag observations outside the seasonal 1st-99th percentile range
     # These may represent unusual environmental conditions or sensor issues

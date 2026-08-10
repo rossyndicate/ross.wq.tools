@@ -67,7 +67,7 @@ cal_annotate <- function(raw_calibration_df) {
       if (offset_has_data) {
         finite_offsets <- clean_df$offset[is.finite(clean_df$offset)]
         offset_mean <- mean(finite_offsets)
-        offset_sd <- sd(finite_offsets)
+        offset_sd <- stats::sd(finite_offsets)
         offset_ci_lower <- offset_mean - (3*offset_sd)
         offset_ci_upper <- offset_mean + (3*offset_sd)
       }
@@ -75,7 +75,7 @@ cal_annotate <- function(raw_calibration_df) {
       if (slope_has_data) {
         finite_slopes <- clean_df$slope[is.finite(clean_df$slope)]
         slope_mean <- mean(finite_slopes)
-        slope_sd <- sd(finite_slopes)
+        slope_sd <- stats::sd(finite_slopes)
         slope_ci_lower <- slope_mean - (3*slope_sd)
         slope_ci_upper <- slope_mean + (3*slope_sd)
       }
@@ -87,14 +87,14 @@ cal_annotate <- function(raw_calibration_df) {
             # Both parameters available - check both
             offset_has_data & slope_has_data ~
               is.finite(offset) & is.finite(slope) &
-              between(offset, offset_ci_lower, offset_ci_upper) &
-              between(slope, slope_ci_lower, slope_ci_upper),
+              data.table::between(offset, offset_ci_lower, offset_ci_upper) &
+              data.table::between(slope, slope_ci_lower, slope_ci_upper),
             # Only offset available
             offset_has_data & !slope_has_data ~
-              is.finite(offset) & between(offset, offset_ci_lower, offset_ci_upper),
+              is.finite(offset) & data.table::between(offset, offset_ci_lower, offset_ci_upper),
             # Only slope available
             !offset_has_data & slope_has_data ~
-              is.finite(slope) & between(slope, slope_ci_lower, slope_ci_upper),
+              is.finite(slope) & data.table::between(slope, slope_ci_lower, slope_ci_upper),
             # No valid data available
             TRUE ~ FALSE
           )

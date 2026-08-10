@@ -53,7 +53,7 @@ add_field_flag <- function(df) {
     df <- df %>%
       # Look back i steps to see if there was a site visit flag
       # If found, mark this timestamp as within the recovery window
-      add_flag(lag(stringr::str_detect(flag, "site visit"), n = i), "sv window")
+      add_flag(dplyr::lag(stringr::str_detect(flag, "site visit"), n = i), "sv window")
   }
 
   # Add flags for the pre-visit window (15 minutes before a site visit)
@@ -61,7 +61,7 @@ add_field_flag <- function(df) {
   df <- df %>%
     # Look ahead 1 step to see if there will be a site visit flag
     # If found, mark this timestamp as within the preparation window
-    add_flag(lead(stringr::str_detect(flag, "site visit"), n = 1), "sv window")
+    add_flag(dplyr::lead(stringr::str_detect(flag, "site visit"), n = 1), "sv window")
 
   return(df)
 }

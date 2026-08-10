@@ -116,8 +116,8 @@ cal_back_calibrate <- function(prepped_snsr_cal_df, obs_column = "mean") {
         wt_col = "wt"
       ) %>%
       dplyr::group_by(DT_round) %>%
-      dplyr::filter(is.na(!!sym(obs_column)) | (!!sym(obs_column) < 7 & point == 1) | (!!sym(obs_column) >= 7 & point == 2)) %>%
-      slice_min(point) %>%
+      dplyr::filter(is.na(!!rlang::sym(obs_column)) | (!!rlang::sym(obs_column) < 7 & point == 1) | (!!rlang::sym(obs_column) >= 7 & point == 2)) %>%
+      dplyr::slice_min(point) %>%
       dplyr::ungroup() %>%
       dplyr::arrange(DT_round)
   }
@@ -141,7 +141,7 @@ cal_back_calibrate <- function(prepped_snsr_cal_df, obs_column = "mean") {
       # Field ID columns
       site, sonde_serial, parameter,
       # Sensor reading transformation columns
-      !!sym(obs_column), !!sym(obs_column_raw), !!sym(obs_column_lm_trans), !!sym(obs_column_cal), cal_check,
+      !!rlang::sym(obs_column), !!rlang::sym(obs_column_raw), !!rlang::sym(obs_column_lm_trans), !!rlang::sym(obs_column_cal), cal_check,
       # Sensor information
       sensor_serial,
       # DT calibration information columns

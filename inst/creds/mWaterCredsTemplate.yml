@@ -1,0 +1,9 @@
+# mWater API credentials.
+# 1) Replace '<INSERT URL HERE>' below with your mWater deployment's CSV data
+#    export URL (from your mWater account's data export settings). No client
+#    ID or secret needed here, just the URL.
+# 2) Save your filled-in copy outside this template's location.
+# 3) Before committing anything, run `git status` and confirm your filled-in
+#    copy is NOT being tracked.
+
+url: '<INSERT URL HERE>'

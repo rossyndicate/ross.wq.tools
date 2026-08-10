@@ -75,10 +75,10 @@
 cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
   # Process each year of joined sensor-calibration data
   prepped_yearly_site_param_chunks <- sensor_calibration_data_list %>%
-    map(function(year){ # Iterate over each year's site-parameter list
+    purrr::map(function(year){ # Iterate over each year's site-parameter list
       # Process each site-parameter combination within the year
       prepped_yearly_site_param_chunks <- year %>%
-        map(function(site_param_df){
+        purrr::map(function(site_param_df){
 
           # Split data into calibration windows based on sensor changes and good calibrations
           # This creates chunks of sensor data between consecutive reliable calibration points
@@ -89,7 +89,7 @@ cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
               method = "l_starts",
               starts_col = "sensor_serial"
             ) %>%
-            map(function(snsr_srl_list){
+            purrr::map(function(snsr_srl_list){
               # Split by consecutive good calibrations within each sensor period
               snsr_srl_list %>%
                 # Convert sensor_date_lead to character for grouping
@@ -107,10 +107,10 @@ cal_prepare_calibration_windows <- function(sensor_calibration_data_list) {
                   starts_col = "sensor_date_lead_chr"
                 ) %>%
                 # Remove chunks with missing sonde data
-                discard(~all(is.na(.x$sonde_serial)))
+                purrr::discard(~all(is.na(.x$sonde_serial)))
             }) %>%
             unlist(recursive = FALSE) %>%
-            map(function(cal_window) {
+            purrr::map(function(cal_window) {
               # Assign final calibration parameters based on calibration quality
               cal_window %>%
                 dplyr::mutate(

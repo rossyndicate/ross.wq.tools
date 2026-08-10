@@ -60,7 +60,7 @@ add_field_notes <- function(df, notes) {
       dplyr::distinct() %>%
 
       # Remove sonde_employed and other field note columns if they exist
-      dplyr::select(-any_of(c("sonde_employed", "sonde_moved", "last_site_visit",
+      dplyr::select(-dplyr::any_of(c("sonde_employed", "sonde_moved", "last_site_visit",
                               "visit_comments", "sensor_malfunction", "cals_performed"))) %>%
 
       # Join the time series data with relevant field note information
@@ -69,11 +69,11 @@ add_field_notes <- function(df, notes) {
                                         sonde_employed, sonde_moved,
                                         last_site_visit, DT_join, visit_comments,
                                         sensor_malfunction, cals_performed,
-                                        matches("pre|post")),
+                                        dplyr::matches("pre|post")),
                        by = c('DT_join')) %>%
 
       # Ensure proper temporal ordering of the combined data
-      arrange((DT_join)) %>%
+      dplyr::arrange((DT_join)) %>%
 
       # Ensure timestamps remain in correct datetime format after joining
       dplyr::mutate(DT_round = lubridate::as_datetime(DT_join, tz = "UTC")) %>%

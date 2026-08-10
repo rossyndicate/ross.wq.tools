@@ -38,7 +38,7 @@ move_api_data <- function(src_dir, dest_dir,
     
     if (length(files_to_copy) > 0) {
       # Copy new files to the archive
-      local_file_list <- map(files_to_copy, function(file_name) {
+      local_file_list <- purrr::map(files_to_copy, function(file_name) {
         # create a temp file 
         temp_file <- tempfile(fileext = ".parquet")
         
@@ -86,7 +86,7 @@ move_api_data <- function(src_dir, dest_dir,
     
     # Remove the copied files from the working directory
     if (length(files_to_copy) > 0) {
-      walk(files_to_copy, function(file_name){
+      purrr::walk(files_to_copy, function(file_name){
         AzureStor::delete_adls_file(filesystem = fs,
                                     file = file.path(src_dir, file_name))
         message(paste0("File ", file_name, " has been deleted from ", src_dir, "."))
@@ -103,7 +103,7 @@ move_api_data <- function(src_dir, dest_dir,
     
     if (length(incoming_files) > 0) {
       files_to_delete <- AzureStor::list_adls_files(fs, src_dir, info = "name")
-      walk(files_to_delete, function(file_path){
+      purrr::walk(files_to_delete, function(file_path){
         AzureStor::delete_adls_file(filesystem = fs,
                                     file = file_path)
         message(paste0("File ", file_path, " has been deleted from ", src_dir, "."))

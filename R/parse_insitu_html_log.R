@@ -226,6 +226,7 @@ parse_insitu_html_log <- function(html_markup) {
         stringr::str_detect(parameter, "Depth") ~ "Depth",
         stringr::str_detect(parameter, "ORP") ~ "ORP",
         stringr::str_detect(parameter, "Chlorophyll-a") ~ "Chl-a Fluorescence",
+        stringr::str_detect(parameter, "Chl-a") ~ "Chl-a Fluorescence",
         stringr::str_detect(parameter, "FDOM") ~ "FDOM Fluorescence",
         TRUE ~ NA
       ),

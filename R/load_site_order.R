@@ -72,7 +72,7 @@ load_site_order <- function(file_path){
     }
     
     #convert network string into separated, trimmed character vectors
-    site_order <- map(site_order_raw, function(sites){
+    site_order <- purrr::map(site_order_raw, function(sites){
       stringr::str_split(sites, ",")[[1]] %>%
         stringr::str_trim()
     })

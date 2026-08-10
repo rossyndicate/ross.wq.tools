@@ -27,7 +27,7 @@
 cal_three_point_drift_pH <- function(df, obs_col, lm_trans_col, drift_corr_col, wt_col) {
 
   # Create output column names for drift calculations
-  drift_f <- paste0(str_split_1(lm_trans_col, "_")[1], "_drift_f")
+  drift_f <- paste0(stringr::str_split_1(lm_trans_col, "_")[1], "_drift_f")
 
   # Extract drift calibration data from the latest calibration
   drift_back_calibration <- df[[drift_corr_col]][[nrow(df)]]

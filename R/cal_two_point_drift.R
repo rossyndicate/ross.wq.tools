@@ -24,7 +24,7 @@
 cal_two_point_drift <- function(df, lm_trans_col, drift_corr_col, wt_col){
 
   # Create output column name for drift-corrected values
-  transformed_col <- paste0(str_split_1(lm_trans_col, "_")[1], "_drift_trans")
+  transformed_col <- paste0(stringr::str_split_1(lm_trans_col, "_")[1], "_drift_trans")
 
   # Extract drift calibration data from the latest calibration
   drift_back_calibration <- df[[drift_corr_col]][[nrow(df)]]

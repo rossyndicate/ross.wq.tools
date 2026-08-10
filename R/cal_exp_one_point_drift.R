@@ -27,7 +27,7 @@ cal_exp_one_point_drift <- function(df, lm_trans_col, pre_col, post_col, wt_col,
                                     drift_type = "linear", correction_type = "additive"){
 
   # Create output column name for drift-corrected values
-  transformed_col <- paste0(str_split_1(lm_trans_col, "_")[1], "_drift_trans")
+  transformed_col <- paste0(stringr::str_split_1(lm_trans_col, "_")[1], "_drift_trans")
 
   # Extract drift calibration data from the latest field note information
   pre_drift_back_calibration <- df[[pre_col]][[nrow(df)]]

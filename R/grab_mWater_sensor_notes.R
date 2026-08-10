@@ -61,7 +61,7 @@ grab_mWater_sensor_notes <- function(mWater_api_data){
       date = as.character(date)) %>%
 
     # Sort by timestamp (most recent first)
-    dplyr::arrange(desc(DT_round))%>%
+    dplyr::arrange(dplyr::desc(DT_round))%>%
 
     # Select and reorder columns to match expected format for QAQC workflow
     dplyr::select(
@@ -70,7 +70,7 @@ grab_mWater_sensor_notes <- function(mWater_api_data){
       cal_report_collected, sonde_moved, sensor_malfunction, sensor_pulled,
       sensor_deployed, sensor_swapped_notes, visit_type, DT_join,
       start_DT, end_dt, date, visit_comments, photos_downloaded, field_season,
-      last_site_visit, matches("pre|post")
+      last_site_visit, dplyr::matches("pre|post")
     )
 
   return(mWater_field_notes)

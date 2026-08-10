@@ -19,7 +19,7 @@
 add_column_if_not_exists <- function(df, column_name, default_value = NA) {
   
   if (!column_name %in% colnames(df)) {
-    df <- df %>% dplyr::mutate(!!sym(column_name) := default_value)
+    df <- df %>% dplyr::mutate(!!rlang::sym(column_name) := default_value)
   }
   return(df)
 }

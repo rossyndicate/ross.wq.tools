@@ -55,7 +55,7 @@ get_start_dates <- function(incoming_historically_flagged_data_list,
   default_converted_start_DT <- lubridate::with_tz(default_denver_date, "UTC")
   
   # Generate the default start dates tibble
-  default_start_dates <- tibble(
+  default_start_dates <- tibble::tibble(
     site = c("bellvue",
              "salyer",
              "udall",
@@ -90,7 +90,7 @@ get_start_dates <- function(incoming_historically_flagged_data_list,
   
   # Check if the current execution corresponds to the Sunday midnight pull in America/Denver timezone
   denver_time <- as.POSIXct(sys_time_arg, tz = "America/Denver")
-  sunday_check <- wday(denver_time) == 1 
+  sunday_check <- data.table::wday(denver_time) == 1
   midnight_check <- lubridate::hour(lubridate::floor_date(denver_time, unit = "hour")) == 0
   sunday_midnight_check <- if (sunday_check && midnight_check) TRUE else FALSE
   
@@ -98,12 +98,12 @@ get_start_dates <- function(incoming_historically_flagged_data_list,
     hv_api_tracking_df <- hv_api_tracking_df %>% 
       # Keep sites that are not disabled and don't have to try again
       dplyr::mutate(eligible_for_processing = dplyr::if_else(!auto_disabled & !try_again, TRUE, FALSE)) %>% 
-      select(site, parameter, last_success, eligible_for_processing)
+      dplyr::select(site, parameter, last_success, eligible_for_processing)
   } else { # sunday midnight check passes (try to change if any of the sites pass later)
     hv_api_tracking_df <- hv_api_tracking_df %>% 
       # Keep sites that are not disabled and do have to try again
       dplyr::mutate(eligible_for_processing = dplyr::if_else(!auto_disabled | try_again, TRUE, FALSE)) %>% 
-      select(site, parameter, last_success, eligible_for_processing)
+      dplyr::select(site, parameter, last_success, eligible_for_processing)
   }
   
   # Determine the global minimum ===============================================

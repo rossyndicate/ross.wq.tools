@@ -42,15 +42,15 @@ cal_lin_trans_inv_lm_pH <- function(df, mv_col,
                                     wt_col) {
 
   # Create output column names for pH conversion
-  ph_col <- paste0(str_split_1(mv_col, "_")[1], "_lm_trans")
+  ph_col <- paste0(stringr::str_split_1(mv_col, "_")[1], "_lm_trans")
 
   # Convert millivolts back to pH using temporally-weighted inverse transformation
   df <- df %>%
     dplyr::mutate(
-      slope_delta = !!sym(slope_from_col) - !!sym(slope_to_col),
-      offset_delta = !!sym(offset_from_col) - !!sym(offset_to_col),
+      slope_delta = !!rlang::sym(slope_from_col) - !!rlang::sym(slope_to_col),
+      offset_delta = !!rlang::sym(offset_from_col) - !!rlang::sym(offset_to_col),
       # Inverse transformation: x = (y-(b_1-wt(b_1-b_2)))/(m_1-wt(m_1-m_2))
-      !!ph_col := (.data[[mv_col]] - (!!sym(offset_from_col) - (.data[[wt_col]] * offset_delta))) / (!!sym(slope_from_col) - (.data[[wt_col]] * slope_delta))
+      !!ph_col := (.data[[mv_col]] - (!!rlang::sym(offset_from_col) - (.data[[wt_col]] * offset_delta))) / (!!rlang::sym(slope_from_col) - (.data[[wt_col]] * slope_delta))
     ) %>%
     dplyr::select(-c(slope_delta, offset_delta))
 

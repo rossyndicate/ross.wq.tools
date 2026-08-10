@@ -48,7 +48,7 @@ api_puller <- function(site,
                        synapse_env = FALSE, fs = NULL) {
   
   # Synapse runs in parallel, so stagger API calls to prevent overloading server
-  Sys.sleep(runif(1, 2, 5))
+  Sys.sleep(stats::runif(1, 2, 5))
   
   # For other sites, filter locations that contain the site name
   site_loc <- hv_sites_arg %>%

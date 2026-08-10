@@ -2,10 +2,47 @@
 % Please edit documentation in R/cal_div_table_check.R
 \name{cal_div_table_check}
 \alias{cal_div_table_check}
-\title{Calibration file div table check}
+\title{Check whether a captioned calibration table exists and has expected columns}
 \usage{
 cal_div_table_check(table_list, table_name, col_names)
 }
+\arguments{
+\item{table_list}{A named list of data frames, one per captioned table in
+a sensor div (e.g. \code{list(sensor = ..., calibration_details = ...)}).}
+
+\item{table_name}{Character scalar. The name (caption) of the table to
+look for within \code{table_list}.}
+
+\item{col_names}{Character vector. Column names expected to exist after
+pivoting \code{table_list[[table_name]]} wide (\verb{names_from = X1, values_from = X2}).}
+}
+\value{
+\code{TRUE} if \code{table_name} exists in \code{table_list}, is non-empty, and
+pivoting it wide produces every name in \code{col_names}; \code{FALSE} otherwise
+-- including the case where \code{table_list} has only one table (just the
+"sensor" metadata table, meaning no calibration data exists at all for
+that sensor).
+}
 \description{
-Calibration file div table check
+Validates a single named table within a sensor div's table list before
+that table is used to extract calibration coefficients. \code{table_list} is
+the kind of structure produced by \code{xml_table_list()} in
+\code{cal_extract_helpers.R} and named via \code{janitor::make_clean_names()} on
+each table's \verb{<caption>} text (e.g. \code{"sensor"}, \code{"calibration_details"},
+\code{"slope_and_offset_1"}, \code{"orp"}). This function confirms \code{table_name} is
+actually present, has at least one row, and that pivoting it wide
+(\verb{names_from = X1, values_from = X2} -- the same convention every table
+in these reports is consumed with) produces all of \code{col_names}.
+
+Used throughout the \verb{cal_extract_*_data()} functions (\code{cal_extract_helpers.R})
+to branch around calibration data that doesn't exist for a given sensor.
+This happens for two real reasons: a sensor with no calibration performed
+(e.g. "Factory Defaults" -- its div only ever has the "sensor" metadata
+table and nothing else), or a calibration variant that omits certain rows
+(e.g. a conductivity calibration with a cell constant but no offset row).
+}
+\seealso{
+\code{\link[=cal_extract_chla_data]{cal_extract_chla_data()}}
+
+\code{\link[=cal_extract_conductivity_data]{cal_extract_conductivity_data()}}
 }

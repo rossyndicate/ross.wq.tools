@@ -1,0 +1,10 @@
+# HydroVu API credentials.
+# 1) Replace 'CLIENT_ID' and 'CLIENT_SECRET' below with your HydroVu API
+#    client ID and secret (from your HydroVu account's People & Permissions
+#    page, under "Manage API Access Credentials").
+# 2) Save your filled-in copy outside this template's location.
+# 3) Before committing anything, run `git status` and confirm your filled-in
+#    copy is NOT being tracked.
+
+client: 'CLIENT_ID'
+secret: 'CLIENT_SECRET'

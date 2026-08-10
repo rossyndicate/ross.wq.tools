@@ -61,7 +61,7 @@ munge_api_data <- function(api_dir, summarize_interval = "15 minutes",
     # Handle local storage scenario when working outside of Synapse
 
     # Process each local parquet file and combine results into a single dataframe.
-    api_data <- map_dfr(list.files(api_dir, full.names = TRUE, pattern = "*.parquet"),
+    api_data <- purrr::map_dfr(list.files(api_dir, full.names = TRUE, pattern = "*.parquet"),
                         function(file_path) {
                           site_df <- arrow::read_parquet(file_path, as_data_frame = TRUE)
                           return(site_df)

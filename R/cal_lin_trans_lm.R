@@ -45,16 +45,16 @@ cal_lin_trans_lm <- function(df, raw_col,
                              wt_col){
 
   # Create output column name for linearly transformed values
-  transformed_col <- paste0(str_split_1(raw_col, "_")[1], "_lm_trans")
+  transformed_col <- paste0(stringr::str_split_1(raw_col, "_")[1], "_lm_trans")
 
   # Apply temporally-weighted linear model: y = (m_1-wt(m_1-m_2))x+(b_1-wt(b_1-b_2))
   df <- df %>%
     dplyr::mutate(
-      slope_delta = !!sym(slope_from_col) - !!sym(slope_to_col),
-      offset_delta = !!sym(offset_from_col) - !!sym(offset_to_col),
-      !!transformed_col := ((!!sym(slope_from_col)-(.data[[wt_col]]*slope_delta))*.data[[raw_col]])+(!!sym(offset_from_col)-(.data[[wt_col]]*offset_delta))
+      slope_delta = !!rlang::sym(slope_from_col) - !!rlang::sym(slope_to_col),
+      offset_delta = !!rlang::sym(offset_from_col) - !!rlang::sym(offset_to_col),
+      !!transformed_col := ((!!rlang::sym(slope_from_col)-(.data[[wt_col]]*slope_delta))*.data[[raw_col]])+(!!rlang::sym(offset_from_col)-(.data[[wt_col]]*offset_delta))
     ) %>%
-    select(-slope_delta, -offset_delta)  # Clean up temporary columns
+    dplyr::select(-slope_delta, -offset_delta)  # Clean up temporary columns
 
   return(df)
 }

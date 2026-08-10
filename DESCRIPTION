@@ -34,7 +34,6 @@ Imports:
     readr,
     readxl,
     rlang,
-    rvest,
     slider,
     stats,
     stringr,

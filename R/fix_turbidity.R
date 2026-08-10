@@ -24,12 +24,12 @@ df_parameter <- unique(df$parameter)
 
 df <- df %>%
   add_column_if_not_exists(column_name = "raw") %>%
-  mutate(raw = ifelse(is.na(raw), mean, raw))
+  dplyr::mutate(raw = ifelse(is.na(raw), mean, raw))
 
 if(df_parameter == "Turbidity"){
 
   df <- df %>%
-    mutate(mean = ifelse(mean >= 1000, 1000, mean))
+    dplyr::mutate(mean = ifelse(mean >= 1000, 1000, mean))
 
   }
 

@@ -57,6 +57,4 @@ ensuring continuous data collection without gaps or duplication.
 \code{\link[=api_puller]{api_puller()}}
 
 \code{\link[=munge_api_data]{munge_api_data()}}
-
-\code{\link[=update_hv_api_tracker]{update_hv_api_tracker()}}
 }

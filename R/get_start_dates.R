@@ -39,7 +39,6 @@
 #' 
 #' @seealso [api_puller()]
 #' @seealso [munge_api_data()]
-#' @seealso [update_hv_api_tracker()]
 
 get_start_dates <- function(incoming_historically_flagged_data_list,
                             hv_api_tracking_file_path,

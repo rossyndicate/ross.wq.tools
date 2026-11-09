@@ -66,6 +66,9 @@ final_directory <- "path/to/your/final_output"       # Final processed data
 
 # Configure your threshold files
 sensor_thresholds_file <- "path/to/sensor_spec_thresholds.yml"
+# Seasonal thresholds must come from the current make_threshold_table(), which
+# includes the t_median and t_sd columns add_burial_flag() needs (see the
+# "Creating Thresholds" vignette)
 seasonal_thresholds_file <- "path/to/updated_seasonal_thresholds_2025.csv"
 
 # Configure your credentials files
@@ -279,8 +282,6 @@ for (chunk_idx in seq_along(summarized_data_chunks)) {
           add_field_flag(df = .) %>%
           # flag missing/NA values
           add_na_flag(df = .) %>%
-          # flag dissolved oxygen noise patterns
-          find_do_noise(df = .) %>%
           # flag repeating/stuck values
           add_repeat_flag(df = .) %>%
           # flag depth shifts (sonde movement)
@@ -346,8 +347,8 @@ for (chunk_idx in seq_along(intrasensor_data_chunks)) {
           add_frozen_flag(.) %>%
           # check for overlapping flags and resolve
           intersensor_check(.) %>%
-          # flag potential sensor burial
-          add_burial_flag(.) %>%
+          # detect sonde burial from DO and flag every parameter at the site
+          add_burial_flag(df = ., threshold_table = season_thresholds) %>%
           # flag when sonde is above water surface
           add_unsubmerged_flag(.)
         
@@ -441,7 +442,6 @@ iwalk(v_final_flags,
 
 `add_field_flag()`: Flags data during field maintenance visits
 `add_na_flag()`: Flags missing or invalid data points
-`find_do_noise()`: Identifies noise patterns in dissolved oxygen data
 `add_repeat_flag()`: Flags stuck or repeating sensor values
 `add_depth_shift_flag()`: Detects when sensors are moved within their housing
 `add_drift_flag()`: Identifies sensor drift in optical sensors
@@ -454,7 +454,7 @@ iwalk(v_final_flags,
 
 `add_frozen_flag()`: Flags periods when water is frozen
 `intersensor_check()`: Resolves conflicting flags between parameters
-`add_burial_flag()`: Identifies when sensors are buried in sediment
+`add_burial_flag()`: Detects sonde burial from DO (spikes and low values in time windows, scored against seasonal DO stats) and flags all parameters at the site
 `add_unsubmerged_flag()`: Flags when sensors are above water surface
 
 ### Network-Level Flags

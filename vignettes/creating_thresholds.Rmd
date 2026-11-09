@@ -148,6 +148,8 @@ Now we calculate the thresholds. `make_threshold_table` calculates the **1st and
 
 3.  Standard Deviation: The standard deviation of data once data outside the 1st and 99th percentile are removed. Not used in `add_seasonal_flag()`
 
+It also records the **median** (`t_median`) and the **standard deviation of the full data set** (`t_sd`) for each season. These are not used in `add_seasonal_flag()`; they describe the center and spread of DO for sensor burial detection.
+
 ```{r}
 
 threshold_table <- summarized_data %>%

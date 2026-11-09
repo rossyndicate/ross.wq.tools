@@ -2,36 +2,136 @@
 % Please edit documentation in R/add_burial_flag.R
 \name{add_burial_flag}
 \alias{add_burial_flag}
-\title{Flag all parameters within sonde when sonde burial is detected by DO sensor}
+\title{Detect sonde burial from DO and flag all parameters within the sonde}
 \usage{
-add_burial_flag(df)
+add_burial_flag(
+  df,
+  threshold_table,
+  do_parameter = "DO",
+  visit_flag = "site visit",
+  spike_threshold = 0.75,
+  low_floor = 4,
+  trailing_hours = 30,
+  trailing_frac = 0.25,
+  center_hours = 7.5,
+  center_frac = 0.4,
+  leading_hours = 9,
+  leading_frac = 0.5,
+  min_coverage = 0.7,
+  rounds = 3,
+  fixed_anchors = c(0, 0.5, 1.5, 2.5, 3.5),
+  fixed_scores = c(1, 0.97, 0.875, 0.7, 0.7),
+  p01_score = 0.25,
+  sd_score = 0.2,
+  median_score = 0.05,
+  round_bonus = 0.5,
+  lookahead_hours = 3,
+  weight_sd_minutes = 60,
+  decay = 0.99,
+  flag_score = 0.6
+)
 }
 \arguments{
-\item{df}{A dataframe containing all parameters for a single site. Must include columns:
+\item{df}{A dataframe containing all parameters for a single site. The DO rows
+must include:
 \itemize{
-\item \code{parameter}: Measurement type (function looks for "DO" parameter)
+\item \code{DT_round}: Timestamp of each observation
 \item \code{DT_join}: Character timestamp used for joining measurements across parameters
-\item \code{flag}: Existing quality flags, with "Possible burial" flags already applied to DO
-measurements by the \code{find_do_noise()} function
+\item \code{mean}: DO value in mg/L
+\item \code{back1}, \code{front1}, \code{season}: From \code{generate_summary_statistics()}
+\item \code{flag}: Existing quality flags, with \code{visit_flag} at site visits (from
+\code{add_field_flag()})
 }}
+
+\item{threshold_table}{A seasonal threshold table from \code{make_threshold_table()},
+with columns \code{site}, \code{parameter}, \code{season}, \code{t_mean01}, \code{t_median}, and \code{t_sd}.
+Only the \code{do_parameter} rows are used. A site-season with no stats falls back to
+the median of each stat across all sites for that season.}
+
+\item{do_parameter}{Name of the DO parameter in \code{df$parameter} and in
+\code{threshold_table$parameter}.}
+
+\item{visit_flag}{Flag marking site visits. Detection windows are split at the
+start of each run of points carrying this flag.}
+
+\item{spike_threshold}{Minimum jump (mg/L) from the neighboring values for a
+point to count as a spike.}
+
+\item{low_floor}{DO (mg/L) at or below which a point counts as a piece.}
+
+\item{trailing_hours, trailing_frac}{Length and piece fraction of the trailing window.}
+
+\item{center_hours, center_frac}{Half-width and piece fraction of the centered window.}
+
+\item{leading_hours, leading_frac}{Length and piece fraction of the leading window.
+Set any fraction to \code{NA} to turn that window off.}
+
+\item{min_coverage}{Minimum fraction of each window's length that must be covered
+by data for the window to count.}
+
+\item{rounds}{Number of window rounds.}
+
+\item{fixed_anchors, fixed_scores}{DO values (mg/L) and scores of the fixed
+low-DO anchors of the band score curve.}
+
+\item{p01_score, sd_score, median_score}{Scores at the site-season 1st percentile,
+median minus one sd, and median of DO.}
+
+\item{round_bonus}{Score added to points flagged by the rounds (capped at 1).}
+
+\item{lookahead_hours}{How far ahead the backward pass looks.}
+
+\item{weight_sd_minutes}{Standard deviation of the backward pass's Gaussian weights.}
+
+\item{decay}{Score decay per 15 minutes of elapsed time in the backward pass.}
+
+\item{flag_score}{Points with a final score above this get "Possible burial".}
 }
 \value{
 A dataframe with the same structure as the input, but with the \code{flag}
-column updated to include "Possible burial" flags for all parameters when burial
-is detected by the DO sensor.
+column updated to include "Possible burial" for all parameters when burial is
+detected by the DO sensor.
 }
 \description{
-Identifies and flags all sensor parameters when evidence of sonde burial is detected
-by the dissolved oxygen (DO) sensor. When a monitoring sonde becomes buried in sediment,
-all measurements are affected, but the DO sensor often provides the clearest indication
-of burial events.
+Detects likely sonde burial from the dissolved oxygen (DO) record and flags every
+parameter at the site during those periods. When a sonde is buried in sediment,
+all measurements are affected, but the DO sensor gives the clearest signal: DO
+gets noisy (spikes in both directions) and drifts low.
 
-This function propagates burial flags detected by the \code{find_do_noise()} function to all
-other parameters measured at the same time points. This ensures consistent flagging
-across all measurements during burial events.
+Detection runs in three stages on the DO rows of the site, within groups that
+are split at each site visit so no window crosses a cleaning:
+\enumerate{
+\item \strong{Rounds.} Points are "pieces" when they spike by at least
+\code{spike_threshold} from their neighbors or sit at or below \code{low_floor}. A
+point is flagged when the fraction of pieces in a trailing, centered, or
+leading time window reaches that window's fraction (and the window has
+enough data, \code{min_coverage}). Later rounds re-run the windows on the
+previous round's flags, with each fraction raised by 0.1 per round.
+\item \strong{Band score.} Each DO value is mapped to a score between 0 and 1 by linear
+interpolation through fixed low-DO anchors (\code{fixed_anchors}/\code{fixed_scores})
+and site-season anchors at the 1st percentile, median minus one sd, and
+median of DO (from \code{threshold_table}). Anchors are only kept while DO rises
+and the score falls. Points flagged by the rounds get \code{round_bonus} added.
+\item \strong{Backward pass.} Walking back in time, each point takes the larger of its
+own score and a Gaussian-weighted, decayed average of the scores in the
+\code{lookahead_hours} after it, so a burial's score carries back to its onset.
+}
+
+Points whose final score is above \code{flag_score} get "Possible burial", which is
+then copied to every parameter at the same \code{DT_join}.
+
+The defaults are the best configuration from a staged parameter search over
+2023-2025 Poudre Sonde Network data (pooled F1 0.688 against technician
+burial flags; see \verb{poudre_sonde_network/scratch/misc/burial_parameter_search_jpd_09-23-26.Rmd}).
+The thresholds are in mg/L, so DO must be in mg/L.
 
 Unlike most flagging functions, this function operates on site-level dataframes
 containing multiple parameters rather than individual site-parameter combinations.
+
+TODO: \code{combine_datasets()} currently carries 24 hours of history into each
+incremental run, but the trailing window is 30 hours. Until the history is
+raised to 30 hours, burials that started before the 24-hour cutoff can be missed
+at the start of an incremental batch.
 }
 \examples{
 # Examples are temporarily disabled
@@ -39,5 +139,9 @@ containing multiple parameters rather than individual site-parameter combination
 \seealso{
 \code{\link[=add_flag]{add_flag()}}
 
-\code{\link[=find_do_noise]{find_do_noise()}}
+\code{\link[=generate_summary_statistics]{generate_summary_statistics()}}
+
+\code{\link[=make_threshold_table]{make_threshold_table()}}
+
+\code{\link[=add_field_flag]{add_field_flag()}}
 }

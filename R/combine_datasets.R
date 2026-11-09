@@ -79,6 +79,8 @@ combine_datasets <- function(incoming_data_list, historical_data_list) {
     # This creates an overlap period that helps identify sensor drift
     hist_data <- historical_data_list[[index]] %>%
       # Get the last 24 hours of data
+      # TODO: raise to 30 hours (add_burial_flag() trailing window) once the FCIT
+      # plumbing allows; until then burials starting before the cutoff can be missed
       dplyr::filter(DT_round >= max(DT_round) - lubridate::hours(24)) %>%
       # Mark as historical and preserve quality flags
       dplyr::mutate(historical = TRUE,

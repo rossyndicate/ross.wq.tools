@@ -31,10 +31,17 @@ This function processes site-parameter dataframes, but only modifies those
 containg DO data. For those dataframes without DO data, the function returns
 the original dataframe unmodified.
 }
+
+\code{add_burial_flag()} now detects burial directly from DO, and the standard
+pipeline no longer calls this function. It is kept for existing workflows.
+Its "Possible burial" flag uses the older 24-hour interference rule, and
+\code{network_check()} no longer protects "DO interference" flags from removal.
 }
 \examples{
 # Examples are temporarily disabled
 }
 \seealso{
 \code{\link[=add_flag]{add_flag()}}
+
+\code{\link[=add_burial_flag]{add_burial_flag()}}
 }

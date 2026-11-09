@@ -117,7 +117,7 @@ network_check <- function(df, intrasensor_flags_arg = intrasensor_flags, site_or
   # <<< Establish helper objects >>> ----
 
   # String object that is used to ignore flags that we do not want to remove.
-  ignore_flags <- "drift|DO interference|repeat|sonde not employed|frozen|
+  ignore_flags <- "drift|repeat|sonde not employed|frozen|
   unsubmerged|missing data|site visit|sv window|sensor malfunction|burial|
   sensor biofouling|improper level cal|sonde moved"
 

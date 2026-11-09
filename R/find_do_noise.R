@@ -7,10 +7,15 @@
 #' abnormally low.
 #' 2. Possible burial: Flagged when persistent interference is detected over a 
 #' 24-hour period.
-#' This function processes site-parameter dataframes, but only modifies those 
+#' This function processes site-parameter dataframes, but only modifies those
 #' containg DO data. For those dataframes without DO data, the function returns
 #' the original dataframe unmodified.
-#' 
+#'
+#' `add_burial_flag()` now detects burial directly from DO, and the standard
+#' pipeline no longer calls this function. It is kept for existing workflows.
+#' Its "Possible burial" flag uses the older 24-hour interference rule, and
+#' `network_check()` no longer protects "DO interference" flags from removal.
+#'
 #' @param df A site-parameter dataframe containing water quality measurements. Must include:
 #' - `parameter`: Measurement type (function checks for "DO")
 #' - `mean`: The calculated mean value of measurements
@@ -24,6 +29,7 @@
 #' @examples
 #' # Examples are temporarily disabled
 #' @seealso [add_flag()]
+#' @seealso [add_burial_flag()]
  
 find_do_noise <- function(df){
   

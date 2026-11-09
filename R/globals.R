@@ -14,7 +14,7 @@ utils::globalVariables(c(
   "sensor_malfunction", "sensor_pulled", "sensor_swapped_notes", "sensors_cleaned",
   "site_down", "site_other", "site_up", "slope_ahead", "slope_behind", "sn_deployed",
   "sn_removed", "sonde_employed", "start_DT", "start_DT.x", "start_DT.y", "start_dt",
-  "start_time_mst", "t_mean01", "t_mean99", "t_slope_behind_01", "t_slope_behind_99",
+  "f_median", "f_sd", "start_time_mst", "t_mean01", "t_mean99", "t_slope_behind_01", "t_slope_behind_99",
   "tibble", "tightest_r", "timestamp", "type", "upload_adls_file", "visit_comments",
   "visit_type", "visit_type_other", "walk", "which_sensor_malfunction", "wiper_working",
   "write_csv", "DT_join", "DT_round", "Depth", "Temperature", "auto_flag", "back1",

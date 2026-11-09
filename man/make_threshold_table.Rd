@@ -10,8 +10,19 @@ make_threshold_table(df)
 \item{df}{A data frame of cleaned, verified data}
 }
 \value{
-A data frame with the thresholds for the mean, slope_behind, and
-standard deviation of the mean for each site and season.
+A data frame with one row per season and the columns:
+\itemize{
+\item \code{season}, \code{site}, \code{parameter}
+\item \code{t_mean01}, \code{t_mean99}: 1st and 99th percentiles of \code{mean}
+\item \code{t_slope_behind_01}, \code{t_slope_behind_99}: 1st percentile of negative and
+99th percentile of positive \code{slope_behind} values
+\item \code{t_sd_0199}: standard deviation of \code{mean} within the 1st-99th percentile range
+\item \code{t_median}: median of \code{mean}
+\item \code{t_sd}: standard deviation of \code{mean} across the full data set (unlike \code{t_sd_0199})
+}
+
+\code{t_mean01}, \code{t_median}, and \code{t_sd} are used by \code{add_burial_flag()} to build
+the seasonal band score for DO.
 }
 \description{
 A function designed to generate a threshold table for QAQC. This table
